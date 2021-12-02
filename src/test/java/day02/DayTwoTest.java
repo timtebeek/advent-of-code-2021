@@ -58,27 +58,12 @@ class DayTwoTest {
 	}
 
 	private static int multiplyFinalHorizontalPositionAndDepthWithAim(Stream<String> lines) {
-		List<Move> moves = lines.map(line -> line.split(" "))
+		return lines.map(line -> line.split(" "))
 				.map(split -> new Move(split[0], Integer.parseInt(split[1])))
-				.toList();
-
-		int aim = 0, horizontal = 0, depth = 0;
-		for (Move move : moves) {
-			switch (move.direction()) {
-			case "forward" -> {
-				horizontal += move.units();
-				depth += aim * move.units();
-			}
-			case "up" -> {
-				aim -= move.units();
-			}
-			case "down" -> {
-				aim += move.units();
-			}
-			}
-		}
-
-		return horizontal * depth;
+				.reduce(new Position(0, 0, 0),
+						Position::apply,
+						Position::combine)
+				.multiplied();
 	}
 
 }
@@ -86,4 +71,37 @@ class DayTwoTest {
 record Move(
 		String direction,
 		int units) {
+}
+
+record Position(
+		int aim,
+		int horizontal,
+		int depth) {
+
+	Position apply(Move move) {
+		int units = move.units();
+		return switch (move.direction()) {
+		case "forward" -> {
+			yield new Position(aim, horizontal + units, depth + aim * units);
+		}
+		case "up" -> {
+			yield new Position(aim - units, horizontal, depth);
+		}
+		case "down" -> {
+			yield new Position(aim + units, horizontal, depth);
+		}
+		default -> throw new IllegalArgumentException("Unexpected value: " + move.direction());
+		};
+	}
+
+	Position combine(Position b) {
+		return new Position(
+				aim + b.aim(),
+				horizontal + b.horizontal(),
+				depth + b.depth());
+	}
+
+	int multiplied() {
+		return horizontal * depth;
+	}
 }
