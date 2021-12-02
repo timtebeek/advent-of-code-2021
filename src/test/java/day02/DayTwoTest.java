@@ -62,7 +62,7 @@ class DayTwoTest {
 				.map(split -> new Move(split[0], Integer.parseInt(split[1])))
 				.reduce(new Position(0, 0, 0),
 						Position::apply,
-						Position::combine)
+						Position::combine) // Combiner not used in practice, as we're not running in parallel
 				.multiplied();
 	}
 
@@ -81,27 +81,19 @@ record Position(
 	Position apply(Move move) {
 		int units = move.units();
 		return switch (move.direction()) {
-		case "forward" -> {
-			yield new Position(aim, horizontal + units, depth + aim * units);
-		}
-		case "up" -> {
-			yield new Position(aim - units, horizontal, depth);
-		}
-		case "down" -> {
-			yield new Position(aim + units, horizontal, depth);
-		}
+		case "forward" -> new Position(aim, horizontal + units, depth + aim * units);
+		case "up" -> new Position(aim - units, horizontal, depth);
+		case "down" -> new Position(aim + units, horizontal, depth);
 		default -> throw new IllegalArgumentException("Unexpected value: " + move.direction());
 		};
 	}
 
 	Position combine(Position b) {
-		return new Position(
-				aim + b.aim(),
-				horizontal + b.horizontal(),
-				depth + b.depth());
+		return new Position(aim + b.aim(), horizontal + b.horizontal(), depth + b.depth());
 	}
 
 	int multiplied() {
 		return horizontal * depth;
 	}
+
 }
