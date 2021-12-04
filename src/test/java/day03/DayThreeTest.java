@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.groupingBy;
@@ -33,35 +33,30 @@ class DayThreeTest {
 
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(calculatePowerConsumption(SAMPLE)).isEqualTo(198);
+		assertThat(calculatePowerConsumption(List.of(SAMPLE))).isEqualTo(198);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
-		Stream<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(calculatePowerConsumption(lines.toArray(String[]::new))).isEqualTo(3885894);
+		List<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI())).toList();
+		assertThat(calculatePowerConsumption(lines)).isEqualTo(3885894);
 	}
 
-	private static int calculatePowerConsumption(String[] input) {
-		char[] gamma = new char[input[0].length()];
+	private static int calculatePowerConsumption(List<String> input) {
+		char[] gamma = new char[input.get(0).length()];
+		char[] epsilon = new char[input.get(0).length()];
 		for (int i = 0; i < gamma.length; i++) {
-			final int index = i;
-			long count = Stream.of(input)
-					.mapToInt(line -> line.charAt(index))
-					.filter(chr -> chr == '1')
-					.count();
-			char chr = count > input.length / 2 ? '1' : '0';
-			gamma[index] = chr;
+			List<Character> list = countPerIndex(input, i)
+					.entrySet()
+					.stream()
+					.sorted(Comparator.comparing(Map.Entry::getValue))
+					.map(Map.Entry::getKey)
+					.toList();
+			epsilon[i] = list.get(0);
+			gamma[i] = list.get(1);
 		}
-
-		int gammaInt = Integer.parseInt(String.valueOf(gamma), 2);
-		int epsilonInt = Integer.parseInt(
-				String.valueOf(gamma)
-						.replace('1', 'O')
-						.replace('0', '1')
-						.replace('O', '0'),
-				2);
-		return gammaInt * epsilonInt;
+		return Integer.parseInt(String.valueOf(gamma), 2)
+				* Integer.parseInt(String.valueOf(epsilon), 2);
 	}
 
 	@Test
