@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,21 @@ class DayFourTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		String lines = Files.lines(Paths.get(getClass().getResource("input").toURI())).collect(Collectors.joining("\n"));
+		String lines = Files.lines(Paths.get(getClass().getResource("input").toURI()))
+				.collect(Collectors.joining("\n"));
 		assertThat(Game.parse(lines).scoreBestBoard()).isEqualTo(34506);
+	}
+
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(Game.parse(SAMPLE).scoreWorstBoard()).isEqualTo(1924);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String lines = Files.lines(Paths.get(getClass().getResource("input").toURI()))
+				.collect(Collectors.joining("\n"));
+		assertThat(Game.parse(lines).scoreWorstBoard()).isEqualTo(7686);
 	}
 
 }
@@ -75,6 +89,18 @@ record Game(
 			}
 		}
 		throw new IllegalStateException("No winning board");
+	}
+
+	int scoreWorstBoard() {
+		List<BingoCard> cardsInPlay = new ArrayList<>(cards);
+		for (int draw : drawn) {
+			cardsInPlay.forEach(card -> card.mark(draw));
+			if (cardsInPlay.size() == 1 && cardsInPlay.get(0).hasWon()) {
+				return draw * cardsInPlay.get(0).sumUnmarked();
+			}
+			cardsInPlay.removeIf(BingoCard::hasWon);
+		}
+		throw new IllegalStateException("No single worst board");
 	}
 
 }
