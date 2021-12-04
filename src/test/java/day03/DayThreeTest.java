@@ -66,57 +66,37 @@ class DayThreeTest {
 
 	@Test
 	void partTwoSample() throws Exception {
-		assertThat(calculateLifeSupportRating(SAMPLE)).isEqualTo(230);
+		assertThat(calculateLifeSupportRating(List.of(SAMPLE))).isEqualTo(230);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
-		Stream<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(calculateLifeSupportRating(lines.toArray(String[]::new))).isEqualTo(4375225);
+		List<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI())).toList();
+		assertThat(calculateLifeSupportRating(lines)).isEqualTo(4375225);
 	}
 
-	private static int calculateLifeSupportRating(String[] input) {
-		int co2ScrubberRating = co2ScrubberRating(input);
-		int oxygenGeneratorRating = oxygenGeneratorRating(input);
-		return co2ScrubberRating * oxygenGeneratorRating;
+	private static int calculateLifeSupportRating(List<String> input) {
+		return generatorRating(input, '0')
+				* generatorRating(input, '1');
 	}
 
-	private static int oxygenGeneratorRating(String[] input) {
-		List<String> list = new ArrayList<>(List.of(input));
+	private static int generatorRating(List<String> input, char whenEqualRetain) {
+		List<String> list = new ArrayList<>(input);
 		int i = 0;
 		while (list.size() > 1) {
 			final int index = i;
-			list.removeIf(line -> mostCommonOrOne(line, list, index));
+			list.removeIf(line -> compareAndCount(line, list, index, whenEqualRetain));
 			i++;
 		}
 		return Integer.parseInt(list.get(0), 2);
 	}
 
-	private static boolean mostCommonOrOne(String line, List<String> list, int index) {
+	private static boolean compareAndCount(String line, List<String> list, int index, char whenEqualRetain) {
 		Map<Character, Integer> countPerIndex = countPerIndex(list, index);
 		char charAt = line.charAt(index);
 		int zeroCount = countPerIndex.getOrDefault('0', 0);
 		int oneCount = countPerIndex.getOrDefault('1', 0);
-		return charAt == '1' ? zeroCount <= oneCount : zeroCount > oneCount;
-	}
-
-	private static int co2ScrubberRating(String[] input) {
-		List<String> list = new ArrayList<>(List.of(input));
-		int i = 0;
-		while (list.size() > 1) {
-			final int index = i;
-			list.removeIf(line -> leastCommonOrZero(line, list, index));
-			i++;
-		}
-		return Integer.parseInt(list.get(0), 2);
-	}
-
-	private static boolean leastCommonOrZero(String line, List<String> list, int index) {
-		Map<Character, Integer> countPerIndex = countPerIndex(list, index);
-		char charAt = line.charAt(index);
-		int zeroCount = countPerIndex.getOrDefault('0', 0);
-		int oneCount = countPerIndex.getOrDefault('1', 0);
-		return charAt == '0' ? zeroCount <= oneCount : zeroCount > oneCount;
+		return charAt == whenEqualRetain ? zeroCount <= oneCount : zeroCount > oneCount;
 	}
 
 	private static Map<Character, Integer> countPerIndex(List<String> input, int index) {
