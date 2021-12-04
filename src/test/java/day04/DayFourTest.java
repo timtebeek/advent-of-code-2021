@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,15 +87,14 @@ record Game(
 	}
 
 	int scoreWorstBoard() {
-		List<BingoCard> cardsInPlay = new ArrayList<>(cards);
-		for (int draw : draws) {
-			cardsInPlay.forEach(card -> card.mark(draw));
-			if (cardsInPlay.size() == 1 && cardsInPlay.get(0).hasWon()) {
-				return draw * cardsInPlay.get(0).sumUnmarked();
-			}
-			cardsInPlay.removeIf(BingoCard::hasWon);
-		}
-		throw new IllegalStateException("No single worst board");
+		return IntStream.of(draws)
+				.flatMap(draw -> cards.stream()
+						.peek(card -> card.mark(draw))
+						.filter(BingoCard::hasWon)
+						.mapToInt(card -> draw * card.sumUnmarked()))
+				.dropWhile(score -> !cards.stream().allMatch(BingoCard::hasWon))
+				.findFirst()
+				.getAsInt();
 	}
 
 }
