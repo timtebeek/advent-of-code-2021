@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayThreeTest {
@@ -87,22 +87,17 @@ class DayThreeTest {
 	}
 
 	private static boolean compareAndCount(String line, List<String> list, int index, char whenEqualRetain) {
-		Map<Character, Integer> countPerIndex = countPerIndex(list, index);
+		Map<Character, Long> countPerIndex = countPerIndex(list, index);
 		char charAt = line.charAt(index);
-		int zeroCount = countPerIndex.getOrDefault('0', 0);
-		int oneCount = countPerIndex.getOrDefault('1', 0);
+		long zeroCount = countPerIndex.getOrDefault('0', 0L);
+		long oneCount = countPerIndex.getOrDefault('1', 0L);
 		return charAt == whenEqualRetain ? zeroCount <= oneCount : zeroCount > oneCount;
 	}
 
-	private static Map<Character, Integer> countPerIndex(List<String> input, int index) {
+	private static Map<Character, Long> countPerIndex(List<String> input, int index) {
 		return input.stream()
 				.map(line -> line.charAt(index))
-				.collect(groupingBy(identity()))
-				.entrySet()
-				.stream()
-				.collect(toMap(
-						Map.Entry::getKey,
-						entry -> entry.getValue().size()));
+				.collect(groupingBy(identity(), counting()));
 	}
 
 }
