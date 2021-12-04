@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiPredicate;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -119,16 +121,16 @@ record BingoCard(Map<Position, State> positions, int size) {
 	}
 
 	boolean hasWon() {
+		return hasWon((index, entry) -> entry.getKey().row() == index)
+				|| hasWon((index, entry) -> entry.getKey().column() == index);
+	}
+
+	private boolean hasWon(BiPredicate<Integer, ? super Entry<Position, State>> predicate) {
 		return IntStream.range(0, size)
-				.anyMatch(row -> positions.entrySet().stream()
-						.filter(entry -> entry.getKey().row() == row)
+				.anyMatch(index -> positions.entrySet().stream()
+						.filter(entry -> predicate.test(index, entry))
 						.map(Map.Entry::getValue)
-						.allMatch(State::marked))
-				|| IntStream.range(0, size)
-						.anyMatch(column -> positions.entrySet().stream()
-								.filter(entry -> entry.getKey().column() == column)
-								.map(Map.Entry::getValue)
-								.allMatch(State::marked));
+						.allMatch(State::marked));
 	}
 
 	int sumUnmarked() {
