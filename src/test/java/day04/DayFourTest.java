@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -99,7 +98,7 @@ record Game(
 
 }
 
-record BingoCard(Map<Position, State> positions, int rows, int columns) {
+record BingoCard(Map<Position, State> positions, int size) {
 
 	static BingoCard parse(String board) {
 		Map<Position, State> positions = new HashMap<>();
@@ -113,10 +112,7 @@ record BingoCard(Map<Position, State> positions, int rows, int columns) {
 				positions.put(new Position(row, column), new State(rowNumbers[column], false));
 			}
 		}
-		return new BingoCard(
-				positions,
-				split.length,
-				positions.keySet().stream().mapToInt(Position::column).max().getAsInt());
+		return new BingoCard(positions, split.length);
 	}
 
 	void mark(int number) {
@@ -124,14 +120,16 @@ record BingoCard(Map<Position, State> positions, int rows, int columns) {
 	}
 
 	boolean hasWon() {
-		return IntStream.range(0, rows)
-				.anyMatch(row -> allMarked(entry -> entry.getKey().row() == row))
-				|| IntStream.range(0, columns)
-						.anyMatch(column -> allMarked(entry -> entry.getKey().column() == column));
-	}
-
-	private boolean allMarked(Predicate<Entry<Position, State>> predicate) {
-		return positions.entrySet().stream().filter(predicate).allMatch(entry -> entry.getValue().marked());
+		return IntStream.range(0, size)
+				.anyMatch(row -> positions.entrySet().stream()
+						.filter(entry -> entry.getKey().row() == row)
+						.map(Map.Entry::getValue)
+						.allMatch(State::marked))
+				|| IntStream.range(0, size)
+						.anyMatch(column -> positions.entrySet().stream()
+								.filter(entry -> entry.getKey().column() == column)
+								.map(Map.Entry::getValue)
+								.allMatch(State::marked));
 	}
 
 	int sumUnmarked() {
