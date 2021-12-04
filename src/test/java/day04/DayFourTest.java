@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.function.BiPredicate;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -48,8 +47,7 @@ class DayFourTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		String lines = Files.lines(Paths.get(getClass().getResource("input").toURI()))
-				.collect(Collectors.joining("\n"));
+		String lines = Files.readString(Paths.get(getClass().getResource("input").toURI()));
 		assertThat(Game.parse(lines).scoreBestBoard()).isEqualTo(34506);
 	}
 
@@ -60,8 +58,7 @@ class DayFourTest {
 
 	@Test
 	void partTwoInput() throws Exception {
-		String lines = Files.lines(Paths.get(getClass().getResource("input").toURI()))
-				.collect(Collectors.joining("\n"));
+		String lines = Files.readString(Paths.get(getClass().getResource("input").toURI()));
 		assertThat(Game.parse(lines).scoreWorstBoard()).isEqualTo(7686);
 	}
 

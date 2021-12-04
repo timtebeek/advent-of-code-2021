@@ -38,7 +38,7 @@ class DayThreeTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		List<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI())).toList();
+		List<String> lines = Files.readAllLines(Paths.get(getClass().getResource("input").toURI()));
 		assertThat(calculatePowerConsumption(lines)).isEqualTo(3885894);
 	}
 
@@ -66,7 +66,7 @@ class DayThreeTest {
 
 	@Test
 	void partTwoInput() throws Exception {
-		List<String> lines = Files.lines(Paths.get(getClass().getResource("input").toURI())).toList();
+		List<String> lines = Files.readAllLines(Paths.get(getClass().getResource("input").toURI()));
 		assertThat(calculateLifeSupportRating(lines)).isEqualTo(4375225);
 	}
 
