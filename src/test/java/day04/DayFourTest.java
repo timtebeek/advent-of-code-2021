@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -79,17 +78,13 @@ record Game(
 	}
 
 	int scoreBestBoard() {
-		for (int draw : draws) {
-			cards.forEach(card -> card.mark(draw));
-			OptionalInt optionalInt = cards.stream()
-					.filter(BingoCard::hasWon)
-					.mapToInt(card -> draw * card.sumUnmarked())
-					.findFirst();
-			if (optionalInt.isPresent()) {
-				return optionalInt.getAsInt();
-			}
-		}
-		throw new IllegalStateException("No winning board");
+		return IntStream.of(draws)
+				.flatMap(draw -> cards.stream()
+						.peek(card -> card.mark(draw))
+						.filter(BingoCard::hasWon)
+						.mapToInt(card -> draw * card.sumUnmarked()))
+				.findFirst()
+				.getAsInt();
 	}
 
 	int scoreWorstBoard() {
