@@ -76,24 +76,24 @@ record Game(
 	}
 
 	int scoreBestBoard() {
-		return IntStream.of(draws)
-				.flatMap(draw -> cards.stream()
-						.peek(card -> card.mark(draw))
-						.filter(BingoCard::hasWon)
-						.mapToInt(card -> draw * card.sumUnmarked()))
+		return scoreBingoCards()
 				.findFirst()
 				.getAsInt();
 	}
 
 	int scoreWorstBoard() {
+		return scoreBingoCards()
+				.dropWhile(score -> !cards.stream().allMatch(BingoCard::hasWon))
+				.findFirst()
+				.getAsInt();
+	}
+
+	private IntStream scoreBingoCards() {
 		return IntStream.of(draws)
 				.flatMap(draw -> cards.stream()
 						.peek(card -> card.mark(draw))
 						.filter(BingoCard::hasWon)
-						.mapToInt(card -> draw * card.sumUnmarked()))
-				.dropWhile(score -> !cards.stream().allMatch(BingoCard::hasWon))
-				.findFirst()
-				.getAsInt();
+						.mapToInt(card -> draw * card.sumUnmarked()));
 	}
 
 }
