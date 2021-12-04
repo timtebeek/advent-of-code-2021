@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -76,24 +77,22 @@ record Game(
 	}
 
 	int scoreBestBoard() {
-		return scoreBingoCards()
-				.findFirst()
-				.getAsInt();
+		return scoreBingoCards(score -> false);
 	}
 
 	int scoreWorstBoard() {
-		return scoreBingoCards()
-				.dropWhile(score -> !cards.stream().allMatch(BingoCard::hasWon))
-				.findFirst()
-				.getAsInt();
+		return scoreBingoCards(score -> !cards.stream().allMatch(BingoCard::hasWon));
 	}
 
-	private IntStream scoreBingoCards() {
+	private int scoreBingoCards(IntPredicate dropWhile) {
 		return IntStream.of(draws)
 				.flatMap(draw -> cards.stream()
 						.peek(card -> card.mark(draw))
 						.filter(BingoCard::hasWon)
-						.mapToInt(card -> draw * card.sumUnmarked()));
+						.mapToInt(card -> draw * card.sumUnmarked()))
+				.dropWhile(dropWhile)
+				.findFirst()
+				.getAsInt();
 	}
 
 }
