@@ -68,20 +68,21 @@ class DayFourTest {
 }
 
 record Game(
-		int[] drawn,
+		int[] draws,
 		List<BingoCard> cards) {
 
 	static Game parse(String input) {
 		String[] split = input.split("\n\n");
-		int[] drawn = Stream.of(split[0].split(",")).mapToInt(Integer::parseInt).toArray();
-		List<BingoCard> cards = Stream.of(split).skip(1).map(BingoCard::parse).toList();
-		return new Game(drawn, cards);
+		return new Game(
+				Stream.of(split[0].split(",")).mapToInt(Integer::parseInt).toArray(),
+				Stream.of(split).skip(1).map(BingoCard::parse).toList());
 	}
 
 	int scoreBestBoard() {
-		for (int draw : drawn) {
+		for (int draw : draws) {
 			cards.forEach(card -> card.mark(draw));
-			OptionalInt optionalInt = cards.stream().filter(BingoCard::hasWon)
+			OptionalInt optionalInt = cards.stream()
+					.filter(BingoCard::hasWon)
 					.mapToInt(card -> draw * card.sumUnmarked())
 					.findFirst();
 			if (optionalInt.isPresent()) {
@@ -93,7 +94,7 @@ record Game(
 
 	int scoreWorstBoard() {
 		List<BingoCard> cardsInPlay = new ArrayList<>(cards);
-		for (int draw : drawn) {
+		for (int draw : draws) {
 			cardsInPlay.forEach(card -> card.mark(draw));
 			if (cardsInPlay.size() == 1 && cardsInPlay.get(0).hasWon()) {
 				return draw * cardsInPlay.get(0).sumUnmarked();
