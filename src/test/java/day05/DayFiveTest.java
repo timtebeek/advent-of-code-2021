@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
@@ -60,7 +59,9 @@ record FloorMap(Map<Point, Long> points) {
 	static FloorMap parse(String sample, boolean includeDiagonal) {
 		return new FloorMap(Stream.of(sample.split("\n"))
 				.map(Line::of)
-				.filter(line -> line.isHorizontal() || line.isVertical() || includeDiagonal)
+				.filter(line -> includeDiagonal
+						|| line.from().x() == line.to().x()
+						|| line.from().y() == line.to().y())
 				.flatMap(line -> line.points().stream())
 				.collect(groupingBy(
 						Function.identity(),
@@ -82,31 +83,13 @@ record Line(Point from, Point to) {
 		return a.compareTo(b) < 0 ? new Line(a, b) : new Line(b, a);
 	}
 
-	boolean isHorizontal() {
-		return from.x() == to.x();
-	}
-
-	boolean isVertical() {
-		return from.y() == to.y();
-	}
-
 	List<Point> points() {
-		if (isHorizontal()) {
-			return IntStream.rangeClosed(from.y(), to.y())
-					.mapToObj(y -> new Point(from.x(), y))
-					.toList();
-		}
-		if (isVertical()) {
-			return IntStream.rangeClosed(from.x(), to.x())
-					.mapToObj(x -> new Point(x, from.y()))
-					.toList();
-		}
 		List<Point> diagonal = new ArrayList<>();
 		int x = from.x();
 		int y = from.y();
-		int xStep = from.x() < to.x() ? 1 : -1;
-		int yStep = from.y() < to.y() ? 1 : -1;
-		int steps = Math.abs(from.x() - to.x());
+		int xStep = from.x() < to.x() ? 1 : from.x() == to.x() ? 0 : -1;
+		int yStep = from.y() < to.y() ? 1 : from.y() == to.y() ? 0 : -1;
+		int steps = Math.max(Math.abs(from.x() - to.x()), Math.abs(from.y() - to.y()));
 		for (int step = 0; step <= steps; step++) {
 			diagonal.add(new Point(x, y));
 			x += xStep;
