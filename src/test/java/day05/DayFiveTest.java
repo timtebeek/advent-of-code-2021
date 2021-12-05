@@ -4,13 +4,12 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,9 +61,7 @@ record FloorMap(Map<Point, Long> points) {
 						|| line.from().x() == line.to().x()
 						|| line.from().y() == line.to().y())
 				.flatMap(line -> line.points().stream())
-				.collect(groupingBy(
-						Function.identity(),
-						Collectors.counting())));
+				.collect(groupingBy(identity(), counting())));
 	}
 
 	long countOverlappingPoints() {
@@ -83,17 +80,14 @@ record Line(Point from, Point to) {
 	}
 
 	List<Point> points() {
-		List<Point> diagonal = new ArrayList<>();
-		int x = from.x();
-		int y = from.y();
 		int xStep = from.x() < to.x() ? 1 : from.x() == to.x() ? 0 : -1;
 		int yStep = from.y() < to.y() ? 1 : from.y() == to.y() ? 0 : -1;
-		while (!diagonal.contains(to)) {
-			diagonal.add(new Point(x, y));
-			x += xStep;
-			y += yStep;
-		}
-		return diagonal;
+		Point stopAt = new Point(to.x() + xStep, to.y() + yStep);
+		return Stream.iterate(
+				from,
+				last -> !last.equals(stopAt),
+				p -> new Point(p.x() + xStep, p.y() + yStep))
+				.toList();
 	}
 
 }
