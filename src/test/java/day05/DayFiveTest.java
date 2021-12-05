@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,22 +33,34 @@ class DayFiveTest {
 
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(FloorMap.parseHorizontalAndVertical(SAMPLE).countOverlappingPoints()).isEqualTo(5);
+		assertThat(FloorMap.parse(SAMPLE, false).countOverlappingPoints()).isEqualTo(5);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(FloorMap.parseHorizontalAndVertical(input).countOverlappingPoints()).isEqualTo(5294);
+		assertThat(FloorMap.parse(input, false).countOverlappingPoints()).isEqualTo(5294);
 	}
+
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(FloorMap.parse(SAMPLE, true).countOverlappingPoints()).isEqualTo(12);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(FloorMap.parse(input, true).countOverlappingPoints()).isEqualTo(21698);
+	}
+
 }
 
 record FloorMap(Map<Point, Long> points) {
 
-	static FloorMap parseHorizontalAndVertical(String sample) {
+	static FloorMap parse(String sample, boolean includeDiagonal) {
 		return new FloorMap(Stream.of(sample.split("\n"))
 				.map(Line::of)
-				.filter(line -> line.isHorizontal() || line.isVertical())
+				.filter(line -> line.isHorizontal() || line.isVertical() || includeDiagonal)
 				.flatMap(line -> line.points().stream())
 				.collect(groupingBy(
 						Function.identity(),
@@ -61,6 +74,7 @@ record FloorMap(Map<Point, Long> points) {
 }
 
 record Line(Point from, Point to) {
+
 	static Line of(String line) {
 		String[] split = line.split(" -> ");
 		Point a = Point.of(split[0]);
@@ -87,11 +101,24 @@ record Line(Point from, Point to) {
 					.mapToObj(x -> new Point(x, from.y()))
 					.toList();
 		}
-		throw new IllegalStateException("Diagonals not supported");
+		List<Point> diagonal = new ArrayList<>();
+		int x = from.x();
+		int y = from.y();
+		int xStep = from.x() < to.x() ? 1 : -1;
+		int yStep = from.y() < to.y() ? 1 : -1;
+		int steps = Math.abs(from.x() - to.x());
+		for (int step = 0; step <= steps; step++) {
+			diagonal.add(new Point(x, y));
+			x += xStep;
+			y += yStep;
+		}
+		return diagonal;
 	}
+
 }
 
 record Point(int x, int y) implements Comparable<Point> {
+
 	static Point of(String coordinate) {
 		String[] split = coordinate.split(",");
 		return new Point(
@@ -105,4 +132,5 @@ record Point(int x, int y) implements Comparable<Point> {
 				.thenComparing(Point::y)
 				.compare(this, o);
 	}
+
 }
