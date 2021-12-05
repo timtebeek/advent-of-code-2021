@@ -89,8 +89,7 @@ record Line(Point from, Point to) {
 		int y = from.y();
 		int xStep = from.x() < to.x() ? 1 : from.x() == to.x() ? 0 : -1;
 		int yStep = from.y() < to.y() ? 1 : from.y() == to.y() ? 0 : -1;
-		int steps = Math.max(Math.abs(from.x() - to.x()), Math.abs(from.y() - to.y()));
-		for (int step = 0; step <= steps; step++) {
+		while (!diagonal.contains(to)) {
 			diagonal.add(new Point(x, y));
 			x += xStep;
 			y += yStep;
