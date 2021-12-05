@@ -82,11 +82,12 @@ record Line(Point from, Point to) {
 	List<Point> points() {
 		int xStep = from.x() < to.x() ? 1 : from.x() == to.x() ? 0 : -1;
 		int yStep = from.y() < to.y() ? 1 : from.y() == to.y() ? 0 : -1;
-		Point stopAt = new Point(to.x() + xStep, to.y() + yStep);
-		return Stream.iterate(
-				from,
-				last -> !last.equals(stopAt),
-				p -> new Point(p.x() + xStep, p.y() + yStep))
+		return Stream.concat(
+				Stream.iterate(
+						from,
+						last -> !last.equals(to),
+						p -> new Point(p.x() + xStep, p.y() + yStep)),
+				Stream.of(to)) // Dropped through hasNext
 				.toList();
 	}
 
