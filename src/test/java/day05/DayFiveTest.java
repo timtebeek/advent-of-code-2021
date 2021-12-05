@@ -11,7 +11,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -78,9 +77,9 @@ record Line(Point from, Point to) {
 
 	static Line of(String line) {
 		String[] split = line.split(" -> ");
-		Point a = Point.of(split[0]);
-		Point b = Point.of(split[1]);
-		return a.compareTo(b) < 0 ? new Line(a, b) : new Line(b, a);
+		return new Line(
+				Point.of(split[0]),
+				Point.of(split[1]));
 	}
 
 	List<Point> points() {
@@ -99,20 +98,13 @@ record Line(Point from, Point to) {
 
 }
 
-record Point(int x, int y) implements Comparable<Point> {
+record Point(int x, int y) {
 
 	static Point of(String coordinate) {
 		String[] split = coordinate.split(",");
 		return new Point(
 				Integer.parseInt(split[0]),
 				Integer.parseInt(split[1]));
-	}
-
-	@Override
-	public int compareTo(Point o) {
-		return comparing(Point::x)
-				.thenComparing(Point::y)
-				.compare(this, o);
 	}
 
 }
