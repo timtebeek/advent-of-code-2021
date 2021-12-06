@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summingLong;
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,7 +54,7 @@ class DaySixTest {
 						.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum)))
 				.skip(days)
 				.findFirst()
-				.map(map -> map.values().stream().mapToLong(Long::longValue).sum())
+				.map(map -> map.values().stream().collect(summingLong(Long::longValue)))
 				.get();
 	}
 
