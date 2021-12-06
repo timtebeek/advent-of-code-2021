@@ -51,10 +51,10 @@ class DaySixTest {
 										Map.entry(8, entry.getValue()))
 								: Stream.of(Map.entry(entry.getKey() - 1, entry.getValue())))
 						.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum)))
-				.limit(days + 1)
-				.mapToLong(map -> map.values().stream().mapToLong(Long::longValue).sum())
-				.reduce((a, b) -> b)
-				.getAsLong();
+				.skip(days)
+				.findFirst()
+				.map(map -> map.values().stream().mapToLong(Long::longValue).sum())
+				.get();
 	}
 
 }
