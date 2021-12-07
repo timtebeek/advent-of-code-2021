@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.IntStream.rangeClosed;
@@ -15,38 +15,43 @@ class DaySevenTest {
 
 	private static final String SAMPLE = "16,1,2,0,4,2,7,1,2,14";
 
-	private BiFunction<Integer, Integer, Integer> partOne = (crab, pos) -> Math.abs(pos - crab);
-	private BiFunction<Integer, Integer, Integer> partTwo = (crab, pos) -> rangeClosed(1, Math.abs(pos - crab)).sum();
-
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, partOne)).isEqualTo(37);
+		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, DaySevenTest::costPartOne)).isEqualTo(37);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countLeastAmountOfFuelForAlignment(input, partOne)).isEqualTo(342730);
+		assertThat(countLeastAmountOfFuelForAlignment(input, DaySevenTest::costPartOne)).isEqualTo(342730);
 	}
 
 	@Test
 	void partTwoSample() throws Exception {
-		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, partTwo)).isEqualTo(168);
+		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, DaySevenTest::costPartTwo)).isEqualTo(168);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countLeastAmountOfFuelForAlignment(input, partTwo)).isEqualTo(92335207);
+		assertThat(countLeastAmountOfFuelForAlignment(input, DaySevenTest::costPartTwo)).isEqualTo(92335207);
 	}
 
 	private static long countLeastAmountOfFuelForAlignment(String input, BiFunction<Integer, Integer, Integer> cost) {
-		List<Integer> crabs = Stream.of(input.split(",")).map(Integer::valueOf).toList();
+		int[] crabs = Stream.of(input.split(",")).mapToInt(Integer::parseInt).toArray();
 		return rangeClosed(
-				crabs.stream().min(Integer::compareTo).get(),
-				crabs.stream().max(Integer::compareTo).get())
-						.map(pos -> crabs.stream().mapToInt(crab -> cost.apply(crab, pos)).sum())
+				IntStream.of(crabs).min().getAsInt(),
+				IntStream.of(crabs).max().getAsInt())
+						.map(pos -> IntStream.of(crabs).map(crab -> cost.apply(crab, pos)).sum())
 						.min().getAsInt();
+	}
+
+	private static int costPartOne(int crab, int position) {
+		return Math.abs(position - crab);
+	}
+
+	private static int costPartTwo(int crab, int position) {
+		return rangeClosed(1, Math.abs(position - crab)).sum();
 	}
 
 }
