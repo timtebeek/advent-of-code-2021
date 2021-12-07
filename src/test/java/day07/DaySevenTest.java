@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -17,41 +16,42 @@ class DaySevenTest {
 
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, DaySevenTest::costPartOne)).isEqualTo(37);
+		assertThat(countLeastAmountOfFuelForPartOne(SAMPLE)).isEqualTo(37);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countLeastAmountOfFuelForAlignment(input, DaySevenTest::costPartOne)).isEqualTo(342730);
+		assertThat(countLeastAmountOfFuelForPartOne(input)).isEqualTo(342730);
 	}
 
 	@Test
 	void partTwoSample() throws Exception {
-		assertThat(countLeastAmountOfFuelForAlignment(SAMPLE, DaySevenTest::costPartTwo)).isEqualTo(168);
+		assertThat(countLeastAmountOfFuelForPartTwo(SAMPLE)).isEqualTo(168);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countLeastAmountOfFuelForAlignment(input, DaySevenTest::costPartTwo)).isEqualTo(92335207);
+		assertThat(countLeastAmountOfFuelForPartTwo(input)).isEqualTo(92335207);
 	}
 
-	private static long countLeastAmountOfFuelForAlignment(String input, BiFunction<Integer, Integer, Integer> cost) {
+	private static long countLeastAmountOfFuelForPartOne(String input) {
 		int[] crabs = Stream.of(input.split(",")).mapToInt(Integer::parseInt).toArray();
 		return rangeClosed(
 				IntStream.of(crabs).min().getAsInt(),
 				IntStream.of(crabs).max().getAsInt())
-						.map(pos -> IntStream.of(crabs).map(crab -> cost.apply(crab, pos)).sum())
+						.map(pos -> IntStream.of(crabs).map(crab -> Math.abs(pos - crab)).sum())
 						.min().getAsInt();
 	}
 
-	private static int costPartOne(int crab, int position) {
-		return Math.abs(position - crab);
-	}
-
-	private static int costPartTwo(int crab, int position) {
-		return rangeClosed(1, Math.abs(position - crab)).sum();
+	private static long countLeastAmountOfFuelForPartTwo(String input) {
+		int[] crabs = Stream.of(input.split(",")).mapToInt(Integer::parseInt).toArray();
+		return rangeClosed(
+				IntStream.of(crabs).min().getAsInt(),
+				IntStream.of(crabs).max().getAsInt())
+						.map(pos -> IntStream.of(crabs).map(crab -> rangeClosed(1, Math.abs(pos - crab)).sum()).sum())
+						.min().getAsInt();
 	}
 
 }
