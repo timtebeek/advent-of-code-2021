@@ -50,7 +50,10 @@ class DaySevenTest {
 		return rangeClosed(
 				IntStream.of(crabs).min().getAsInt(),
 				IntStream.of(crabs).max().getAsInt())
-						.map(pos -> IntStream.of(crabs).map(crab -> rangeClosed(1, Math.abs(pos - crab)).sum()).sum())
+						.map(pos -> IntStream.of(crabs).map(crab -> {
+							int distance = Math.abs(pos - crab);
+							return distance * (distance + 1) / 2;
+						}).sum())
 						.min().getAsInt();
 	}
 
