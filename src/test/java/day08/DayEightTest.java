@@ -102,7 +102,7 @@ record Wiring(Map<String, Integer> sortedSignalLinesToRenderedNumber) {
 		String two = twoAndFive.stream().filter(abc -> !fullyOverlapsWith(abc, six)).findFirst().get();
 		String five = twoAndFive.stream().filter(abc -> fullyOverlapsWith(abc, six)).findFirst().get();
 
-		var map = Map.of(
+		return new Wiring(Map.of(
 				one, 1,
 				two, 2,
 				three, 3,
@@ -112,8 +112,7 @@ record Wiring(Map<String, Integer> sortedSignalLinesToRenderedNumber) {
 				seven, 7,
 				eight, 8,
 				nine, 9,
-				zero, 0);
-		return new Wiring(map);
+				zero, 0));
 	}
 
 	private static boolean fullyOverlapsWith(String query, String target) {
