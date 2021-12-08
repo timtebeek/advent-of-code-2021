@@ -4,8 +4,13 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayEightTest {
@@ -31,16 +36,104 @@ class DayEightTest {
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countNumbersPartOne(input)).isEqualTo(-1);
+		assertThat(countNumbersPartOne(input)).isEqualTo(367);
 	}
 
 	private static long countNumbersPartOne(String sample) {
 		return Stream.of(sample.split("\n"))
-			.map(line -> line.split(" \\| ")[1])
-			.flatMap(numbers -> Stream.of(numbers.split(" ")))
-			.filter(number -> number.length() != 5 && number.length() != 6)
-			.peek(System.out::println)
-			.count();
+				.map(line -> line.split(" \\| ")[1])
+				.flatMap(numbers -> Stream.of(numbers.split(" ")))
+				.filter(number -> number.length() != 5 && number.length() != 6)
+				.count();
+	}
+
+	@Test
+	void partTwoSampleLine() throws Exception {
+		assertThat(addAllOutputValues(
+				"acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf"))
+						.isEqualTo(5353);
+	}
+
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(addAllOutputValues(SAMPLE)).isEqualTo(61229);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(addAllOutputValues(input)).isEqualTo(974512);
+	}
+
+	private static int addAllOutputValues(String sample) {
+		return Stream.of(sample.split("\n"))
+				.map(line -> line.split(" \\| "))
+				.mapToInt(split -> Wiring.parse(split[0]).interpret(split[1]))
+				.sum();
+	}
+
+}
+
+record Wiring(Map<String, Integer> sortedSignalLinesToRenderedNumber) {
+
+	static Wiring parse(String line) {
+		List<String> displayed = Stream.of(line.split(" "))
+				.map(Wiring::sortSegments)
+				.sorted(comparing(String::length)
+						.thenComparing(String::compareTo))
+				.toList();
+
+		String one = displayed.stream().filter(d -> d.length() == 2).findFirst().get();
+		String four = displayed.stream().filter(d -> d.length() == 4).findFirst().get();
+		String seven = displayed.stream().filter(d -> d.length() == 3).findFirst().get();
+		String eight = displayed.stream().filter(d -> d.length() == 7).findFirst().get();
+
+		// 0, 6 & 9
+		List<String> lengthSix = displayed.stream().filter(d -> d.length() == 6).toList();
+		String six = lengthSix.stream().filter(abc -> !fullyOverlapsWith(one, abc)).findFirst().get();
+		List<String> zeroAndNine = lengthSix.stream().filter(Predicate.not(six::equals)).toList();
+		String nine = zeroAndNine.stream().filter(abc -> fullyOverlapsWith(four, abc)).findFirst().get();
+		String zero = zeroAndNine.stream().filter(abc -> !fullyOverlapsWith(four, abc)).findFirst().get();
+
+		// 2, 3 & 5
+		List<String> lengthFive = displayed.stream().filter(d -> d.length() == 5).toList();
+		String three = lengthFive.stream().filter(d -> fullyOverlapsWith(one, d)).findFirst().get();
+		List<String> twoAndFive = lengthFive.stream().filter(d -> !fullyOverlapsWith(one, d)).toList();
+		String two = twoAndFive.stream().filter(abc -> !fullyOverlapsWith(abc, six)).findFirst().get();
+		String five = twoAndFive.stream().filter(abc -> fullyOverlapsWith(abc, six)).findFirst().get();
+
+		var map = Map.of(
+				one, 1,
+				two, 2,
+				three, 3,
+				four, 4,
+				five, 5,
+				six, 6,
+				seven, 7,
+				eight, 8,
+				nine, 9,
+				zero, 0);
+		return new Wiring(map);
+	}
+
+	private static boolean fullyOverlapsWith(String query, String target) {
+		List<String> charsInTarget = Stream.of(target.split("")).toList();
+		return Stream.of(query.split("")).allMatch(charsInTarget::contains);
+	}
+
+	int interpret(String readings) {
+		return Stream.of(readings.split(" "))
+				.map(Wiring::sortSegments)
+				.mapToInt(sortedSignalLinesToRenderedNumber::get)
+				.reduce((a, b) -> a * 10 + b)
+				.getAsInt();
+	}
+
+	static String sortSegments(String segments) {
+		return segments.chars()
+				.mapToObj(Character::toString)
+				.sorted()
+				.collect(joining());
 	}
 
 }
