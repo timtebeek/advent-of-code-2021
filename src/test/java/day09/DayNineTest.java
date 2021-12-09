@@ -7,12 +7,10 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayNineTest {
@@ -38,7 +36,9 @@ class DayNineTest {
 
 	private static int countSumOfRisk(String sample) {
 		HeightMap heightMap = HeightMap.parse(sample);
-		return heightMap.lowPoints().stream()
+		return heightMap.flow().keySet().stream()
+				.map(heightMap::findLowPointFor)
+				.distinct()
 				.mapToInt(point -> heightMap.heights().get(point) + 1) // Risk
 				.sum();
 	}
@@ -61,7 +61,6 @@ class DayNineTest {
 				.collect(groupingBy(point -> heightMap.findLowPointFor(point), counting()));
 		return countPerLowPoint.values().stream()
 				.sorted((a, b) -> b.compareTo(a))
-				.peek(System.out::println)
 				.limit(3)
 				.reduce((a, b) -> a * b)
 				.get();
@@ -77,12 +76,6 @@ record HeightMap(
 		Map<Point, Integer> points = parseHeights(input);
 		Map<Point, Point> flow = flow(points);
 		return new HeightMap(points, flow);
-	}
-
-	public Set<Point> lowPoints() {
-		return flow.keySet().stream()
-				.map(this::findLowPointFor)
-				.collect(toSet());
 	}
 
 	Point findLowPointFor(Point point) {
