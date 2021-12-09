@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +43,30 @@ class DayNineTest {
 				.sum();
 	}
 
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(multiplyThreeLargestBasins(SAMPLE)).isEqualTo(1134);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(multiplyThreeLargestBasins(input)).isEqualTo(1122700);
+	}
+
+	private static Long multiplyThreeLargestBasins(String sample) {
+		HeightMap heightMap = HeightMap.parse(sample);
+		Map<Point, Long> countPerLowPoint = heightMap.heights().keySet().stream()
+				.filter(point -> heightMap.heights().get(point) != 9)
+				.collect(groupingBy(point -> heightMap.findLowPointFor(point), counting()));
+		return countPerLowPoint.values().stream()
+				.sorted((a, b) -> b.compareTo(a))
+				.peek(System.out::println)
+				.limit(3)
+				.reduce((a, b) -> a * b)
+				.get();
+	}
+
 }
 
 record HeightMap(
@@ -59,7 +85,7 @@ record HeightMap(
 				.collect(toSet());
 	}
 
-	private Point findLowPointFor(Point point) {
+	Point findLowPointFor(Point point) {
 		Point flowsTo = flow.get(point);
 		if (flowsTo.equals(point)) {
 			return point;
