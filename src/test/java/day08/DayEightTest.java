@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -77,26 +77,22 @@ class DayEightTest {
 record Wiring(Map<String, Integer> sortedSignalLinesToRenderedNumber) {
 
 	static Wiring parse(String line) {
-		List<String> displayed = Stream.of(line.split(" "))
+		Map<Integer, List<String>> groupedBySize = Stream.of(line.split(" "))
 				.map(Wiring::sortSegments)
-				.sorted(comparing(String::length)
-						.thenComparing(String::compareTo))
-				.toList();
+				.collect(groupingBy(String::length));
 
-		String one = displayed.stream().filter(d -> d.length() == 2).findFirst().get();
-		String four = displayed.stream().filter(d -> d.length() == 4).findFirst().get();
-		String seven = displayed.stream().filter(d -> d.length() == 3).findFirst().get();
-		String eight = displayed.stream().filter(d -> d.length() == 7).findFirst().get();
+		String one = groupedBySize.get(2).get(0);
+		String four = groupedBySize.get(4).get(0);
 
 		// 0, 6 & 9
-		List<String> lengthSix = displayed.stream().filter(d -> d.length() == 6).toList();
+		List<String> lengthSix = groupedBySize.get(6);
 		String six = lengthSix.stream().filter(abc -> !fullyOverlapsWith(one, abc)).findFirst().get();
 		List<String> zeroAndNine = lengthSix.stream().filter(Predicate.not(six::equals)).toList();
 		String nine = zeroAndNine.stream().filter(abc -> fullyOverlapsWith(four, abc)).findFirst().get();
 		String zero = zeroAndNine.stream().filter(abc -> !fullyOverlapsWith(four, abc)).findFirst().get();
 
 		// 2, 3 & 5
-		List<String> lengthFive = displayed.stream().filter(d -> d.length() == 5).toList();
+		List<String> lengthFive = groupedBySize.get(5);
 		String three = lengthFive.stream().filter(d -> fullyOverlapsWith(one, d)).findFirst().get();
 		List<String> twoAndFive = lengthFive.stream().filter(d -> !fullyOverlapsWith(one, d)).toList();
 		String two = twoAndFive.stream().filter(abc -> !fullyOverlapsWith(abc, six)).findFirst().get();
@@ -109,8 +105,8 @@ record Wiring(Map<String, Integer> sortedSignalLinesToRenderedNumber) {
 				four, 4,
 				five, 5,
 				six, 6,
-				seven, 7,
-				eight, 8,
+				groupedBySize.get(3).get(0), 7,
+				groupedBySize.get(7).get(0), 8,
 				nine, 9,
 				zero, 0));
 	}
