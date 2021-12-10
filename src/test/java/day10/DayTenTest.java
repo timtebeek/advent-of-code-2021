@@ -30,17 +30,13 @@ class DayTenTest {
 
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(totalSyntaxErrorScore(SAMPLE)).isEqualTo(26397);
+		assertThat(Parser.parse(SAMPLE, Type.SYNTAX).sum()).isEqualTo(26397);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(totalSyntaxErrorScore(input)).isEqualTo(399153);
-	}
-
-	private static long totalSyntaxErrorScore(String input) {
-		return Parser.parse(input, Type.SYNTAX).sum();
+		assertThat(Parser.parse(input, Type.SYNTAX).sum()).isEqualTo(399153);
 	}
 
 	@Test
@@ -63,6 +59,14 @@ class DayTenTest {
 
 class Parser {
 
+	public static LongStream parse(String input, Type type) {
+		return Stream.of(input.split("\n"))
+				.map(Parser::parseLine)
+				.filter(error -> error.type() == type)
+				.mapToLong(Error::score)
+				.filter(val -> val != 0);
+	}
+
 	private static final Map<Character, Character> pairs = Map.of(
 			'(', ')',
 			'[', ']',
@@ -74,14 +78,6 @@ class Parser {
 			']', 57,
 			'}', 1197,
 			'>', 25137);
-
-	public static LongStream parse(String input, Type type) {
-		return Stream.of(input.split("\n"))
-				.map(Parser::parseLine)
-				.filter(error -> error.type() == type)
-				.mapToLong(Error::score)
-				.filter(val -> val != 0);
-	}
 
 	private static Error parseLine(String line) {
 		Deque<Character> expected = new LinkedList<>();
