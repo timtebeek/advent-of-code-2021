@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
@@ -78,36 +78,6 @@ record HeightMap(
 		return new HeightMap(points, flow);
 	}
 
-	Point findLowPointFor(Point point) {
-		Point flowsTo = flow.get(point);
-		if (flowsTo.equals(point)) {
-			return point;
-		}
-		return findLowPointFor(flowsTo);
-	}
-
-	private static Map<Point, Point> flow(Map<Point, Integer> heights) {
-		return heights.entrySet().stream().collect(toMap(
-				Map.Entry::getKey,
-				point -> findLowestNeighbor(point, heights)));
-	}
-
-	private static Point findLowestNeighbor(Map.Entry<Point, Integer> point, Map<Point, Integer> heights) {
-		Point lowest = point.getKey();
-		for (Point other : List.of(
-				new Point(lowest.row() - 1, lowest.column()), // up
-				new Point(lowest.row() + 1, lowest.column()), // down
-				new Point(lowest.row(), lowest.column() - 1), // left
-				new Point(lowest.row(), lowest.column() + 1))) {// right
-			Integer currentHeight = heights.get(lowest);
-			Integer otherHeight = heights.getOrDefault(other, currentHeight + 1);
-			if (otherHeight <= currentHeight) {
-				lowest = other;
-			}
-		}
-		return lowest;
-	}
-
 	private static Map<Point, Integer> parseHeights(String input) {
 		String[] split = input.split("\n");
 		var points = new HashMap<Point, Integer>();
@@ -118,6 +88,35 @@ record HeightMap(
 			}
 		}
 		return points;
+	}
+
+	private static Map<Point, Point> flow(Map<Point, Integer> heights) {
+		return heights.entrySet().stream().collect(toMap(
+				Map.Entry::getKey,
+				point -> findLowestNeighbor(point, heights)));
+	}
+
+	private static Point findLowestNeighbor(Map.Entry<Point, Integer> point, Map<Point, Integer> heights) {
+		Point reference = point.getKey();
+		Integer fallbackHeight = point.getValue() + 1; // Skip points outside edges
+		return Stream.of(
+				new Point(reference.row() - 1, reference.column()), // up
+				new Point(reference.row() + 1, reference.column()), // down
+				new Point(reference.row(), reference.column() - 1), // left
+				new Point(reference.row(), reference.column() + 1), // right
+				reference) // Include itself last, so when equal there is flow
+				.min((a, b) -> Integer.compare(
+						heights.getOrDefault(a, fallbackHeight),
+						heights.getOrDefault(b, fallbackHeight)))
+				.get();
+	}
+
+	Point findLowPointFor(Point point) {
+		Point flowsTo = flow.get(point);
+		if (flowsTo.equals(point)) {
+			return point;
+		}
+		return findLowPointFor(flowsTo);
 	}
 
 }
