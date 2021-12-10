@@ -40,10 +40,7 @@ class DayTenTest {
 	}
 
 	private static long totalSyntaxErrorScore(String input) {
-		return Stream.of(input.split("\n"))
-				.map(Line::parse)
-				.mapToLong(Line::getCorruptScore)
-				.sum();
+		return Parser.parse(input, Type.SYNTAX).sum();
 	}
 
 	@Test
@@ -58,28 +55,19 @@ class DayTenTest {
 	}
 
 	private static long middleCompletionScore(String sample) {
-		long[] scores = Stream.of(sample.split("\n"))
-				.map(Line::parse)
-				.mapToLong(Line::getCompletionScore)
-				.filter(val -> val != 0)
-				.sorted()
-				.toArray();
+		long[] scores = Parser.parse(sample, Type.INCOMPLETE).sorted().toArray();
 		return LongStream.of(scores).skip(scores.length / 2).findFirst().getAsLong();
 	}
 
 }
 
-record Line(char[] characters) {
+class Parser {
 
-	static Map<Character, Character> pairs = Map.of(
+	private static final Map<Character, Character> pairs = Map.of(
 			'(', ')',
 			'[', ']',
 			'{', '}',
 			'<', '>');
-
-	static Line parse(String inputLine) {
-		return new Line(inputLine.toCharArray());
-	}
 
 	private static final Map<Character, Integer> pointsPerSyntaxError = Map.of(
 			')', 3,
@@ -87,29 +75,24 @@ record Line(char[] characters) {
 			'}', 1197,
 			'>', 25137);
 
-	public long getCorruptScore() {
-		Deque<Character> expected = new LinkedList<>();
-		for (char current : characters) {
-			if (pairs.containsKey(current)) {
-				expected.push(pairs.get(current));
-			} else if (expected.pop() != current) {
-				return pointsPerSyntaxError.get(current);
-			}
-		}
-		// No corrupted character
-		return 0;
+	public static LongStream parse(String input, Type type) {
+		return Stream.of(input.split("\n"))
+				.map(Parser::parseLine)
+				.filter(error -> error.type() == type)
+				.mapToLong(Error::score)
+				.filter(val -> val != 0);
 	}
 
-	public long getCompletionScore() {
+	private static Error parseLine(String line) {
 		Deque<Character> expected = new LinkedList<>();
-		for (char current : characters) {
-			if (pairs.containsKey(current)) {
-				expected.push(pairs.get(current));
-			} else if (expected.pop() != current) {
-				return 0; // Corrupted line
+		for (char token : line.toCharArray()) {
+			if (pairs.containsKey(token)) {
+				expected.push(pairs.get(token));
+			} else if (expected.pop() != token) {
+				return new Error(Type.SYNTAX, pointsPerSyntaxError.get(token));
 			}
 		}
-		return scoreSingleCompletionLine(expected);
+		return new Error(Type.INCOMPLETE, scoreSingleCompletionLine(expected));
 	}
 
 	private static final Map<Character, Integer> pointsPerAutoComplete = Map.of(
@@ -125,4 +108,11 @@ record Line(char[] characters) {
 				.getAsLong();
 	}
 
+}
+
+record Error(Type type, long score) {
+}
+
+enum Type {
+	SYNTAX, INCOMPLETE
 }
