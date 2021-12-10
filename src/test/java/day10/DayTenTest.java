@@ -65,7 +65,7 @@ class DayTenTest {
 	@Test
 	void partTwoInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(middleCompletionScore(input)).isEqualTo(-1);
+		assertThat(middleCompletionScore(input)).isEqualTo(2995077699L);
 	}
 
 	private static long middleCompletionScore(String sample) {
@@ -103,11 +103,11 @@ class DayTenTest {
 			"}", 3,
 			">", 4);
 
-	private static int scoreSingleCompletionLine(String completionCharacters) {
+	private static long scoreSingleCompletionLine(String completionCharacters) {
 		return Stream.of(completionCharacters.split(""))
-				.mapToInt(pointsPerAutoComplete::get)
+				.mapToLong(pointsPerAutoComplete::get)
 				.reduce((a, b) -> a * 5 + b)
-				.getAsInt();
+				.getAsLong();
 	}
 
 }
