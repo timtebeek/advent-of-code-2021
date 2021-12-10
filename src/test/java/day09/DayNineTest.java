@@ -89,10 +89,10 @@ record HeightMap(
 	private static Map<Point, Point> flow(Map<Point, Integer> heights) {
 		return heights.entrySet().stream().collect(toMap(
 				Map.Entry::getKey,
-				point -> findLowPoint(point, heights)));
+				point -> findLowestNeighbor(point, heights)));
 	}
 
-	private static Point findLowPoint(Map.Entry<Point, Integer> point, Map<Point, Integer> heights) {
+	private static Point findLowestNeighbor(Map.Entry<Point, Integer> point, Map<Point, Integer> heights) {
 		Point lowest = point.getKey();
 		for (Point other : List.of(
 				new Point(lowest.row() - 1, lowest.column()), // up
