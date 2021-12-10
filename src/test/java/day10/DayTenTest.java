@@ -1,8 +1,6 @@
 package day10;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -77,24 +75,6 @@ class DayTenTest {
 				.sorted()
 				.toArray();
 		return LongStream.of(scores).skip(scores.length / 2).findFirst().getAsLong();
-	}
-
-	@Test
-	void scoreSingleCompletionLineSample() {
-		assertThat(scoreSingleCompletionLine("])}>")).isEqualTo(294);
-	}
-
-	@ParameterizedTest
-	@CsvSource(textBlock = """
-			[({(<(())[]>[[{[]{<()<>>,}}]])})],288957
-			[(()[<>])]({[<{<<[]>>(,)}>]}),5566
-			(((({<>}<{<{<>}{[]{[]{},}}>}>)))),1480781
-			{<[[]]>}<{[{[{[]{()[[[],]]}}]}]}>,995444
-			<{([{{}}[<[[[<>{}]]]>[]],])}>,294
-			""")
-	void findCompletionCharacters(String line, String completion, long score) {
-		assertThat(Line.parse(line).getCompletionCharacters()).isEqualTo(completion);
-		assertThat(scoreSingleCompletionLine(completion)).isEqualTo(score);
 	}
 
 	private static final Map<String, Integer> pointsPerAutoComplete = Map.of(
