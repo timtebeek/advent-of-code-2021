@@ -4,13 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -42,16 +39,10 @@ class DayTenTest {
 		assertThat(totalSyntaxErrorScore(input)).isEqualTo(399153);
 	}
 
-	private static final Map<String, Integer> pointsPerSyntaxError = new HashMap<>(Map.of(
-			")", 3,
-			"]", 57,
-			"}", 1197,
-			">", 25137));
-
 	private static long totalSyntaxErrorScore(String input) {
 		return Stream.of(input.split("\n"))
 				.map(Line::parse)
-				.mapToLong(line -> pointsPerSyntaxError.getOrDefault(line.getFirstCorruptedCharacter(), 0))
+				.mapToLong(Line::getCorruptScore)
 				.sum();
 	}
 
@@ -69,74 +60,69 @@ class DayTenTest {
 	private static long middleCompletionScore(String sample) {
 		long[] scores = Stream.of(sample.split("\n"))
 				.map(Line::parse)
-				.map(Line::getCompletionCharacters)
-				.filter(Objects::nonNull)
-				.mapToLong(DayTenTest::scoreSingleCompletionLine)
+				.mapToLong(Line::getCompletionScore)
+				.filter(val -> val != 0)
 				.sorted()
 				.toArray();
 		return LongStream.of(scores).skip(scores.length / 2).findFirst().getAsLong();
 	}
 
-	private static final Map<String, Integer> pointsPerAutoComplete = Map.of(
-			")", 1,
-			"]", 2,
-			"}", 3,
-			">", 4);
-
-	private static long scoreSingleCompletionLine(String completionCharacters) {
-		return Stream.of(completionCharacters.split(""))
-				.mapToLong(pointsPerAutoComplete::get)
-				.reduce((a, b) -> a * 5 + b)
-				.getAsLong();
-	}
-
 }
 
-record Line(List<String> characters) {
+record Line(char[] characters) {
 
-	static Map<String, String> pairs = Map.of(
-			"(", ")",
-			"[", "]",
-			"{", "}",
-			"<", ">");
+	static Map<Character, Character> pairs = Map.of(
+			'(', ')',
+			'[', ']',
+			'{', '}',
+			'<', '>');
 
 	static Line parse(String inputLine) {
-		return new Line(List.of(inputLine.split("")));
+		return new Line(inputLine.toCharArray());
 	}
 
-	public String getFirstCorruptedCharacter() {
-		Deque<String> expected = new LinkedList<>();
-		for (String current : characters) {
+	private static final Map<Character, Integer> pointsPerSyntaxError = Map.of(
+			')', 3,
+			']', 57,
+			'}', 1197,
+			'>', 25137);
+
+	public long getCorruptScore() {
+		Deque<Character> expected = new LinkedList<>();
+		for (char current : characters) {
 			if (pairs.containsKey(current)) {
 				expected.push(pairs.get(current));
-			} else if (pairs.containsValue(current)) {
-				String pop = expected.pop();
-				if (!pop.equals(current)) {
-					return current;
-				}
-			} else {
-				throw new IllegalStateException();
+			} else if (expected.pop() != current) {
+				return pointsPerSyntaxError.get(current);
 			}
 		}
 		// No corrupted character
-		return null;
+		return 0;
 	}
 
-	public String getCompletionCharacters() {
-		Deque<String> expected = new LinkedList<>();
-		for (String current : characters) {
+	public long getCompletionScore() {
+		Deque<Character> expected = new LinkedList<>();
+		for (char current : characters) {
 			if (pairs.containsKey(current)) {
 				expected.push(pairs.get(current));
-			} else if (pairs.containsValue(current)) {
-				String pop = expected.pop();
-				if (!pop.equals(current)) {
-					return null; // Corrupted line
-				}
-			} else {
-				throw new IllegalStateException();
+			} else if (expected.pop() != current) {
+				return 0; // Corrupted line
 			}
 		}
-		return expected.stream().collect(Collectors.joining());
+		return scoreSingleCompletionLine(expected);
+	}
+
+	private static final Map<Character, Integer> pointsPerAutoComplete = Map.of(
+			')', 1,
+			']', 2,
+			'}', 3,
+			'>', 4);
+
+	private static long scoreSingleCompletionLine(Collection<Character> expected) {
+		return expected.stream()
+				.mapToLong(pointsPerAutoComplete::get)
+				.reduce((a, b) -> a * 5 + b)
+				.getAsLong();
 	}
 
 }
