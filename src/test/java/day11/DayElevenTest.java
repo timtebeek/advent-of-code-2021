@@ -59,6 +59,30 @@ class DayElevenTest {
 				.findFirst()
 				.getAsInt();
 	}
+
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(stepsUntilAllFlashSimultaneously(SAMPLE)).isEqualTo(195);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		assertThat(stepsUntilAllFlashSimultaneously(INPUT)).isEqualTo(502);
+	}
+
+	private static int stepsUntilAllFlashSimultaneously(String input) {
+		Grid grid = Grid.parse(input);
+		int i = 0, difference = 0;
+		Grid current = Grid.parse(input);
+		do {
+			Grid next = current.step();
+			difference = next.flashes() - current.flashes();
+			current = next;
+			i++;
+		} while (difference != 100);
+		return i;
+	}
+
 }
 
 record Grid(Map<Point, Integer> octopuses, int flashes) {
