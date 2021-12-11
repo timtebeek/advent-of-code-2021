@@ -127,19 +127,11 @@ record Grid(int iteration, Map<Point, Integer> octopuses, int flashesInPreviousS
 
 record Point(int row, int column) {
 
-	static Stream<Point> neighbours(Point c) {
+	Stream<Point> neighbours() {
 		return Stream.of(
-				new Point(c.row() - 1, c.column() - 1),
-				new Point(c.row() - 1, c.column()),
-				new Point(c.row() - 1, c.column() + 1),
-
-				new Point(c.row(), c.column() - 1),
-				// Centre
-				new Point(c.row(), c.column() + 1),
-
-				new Point(c.row() + 1, c.column() - 1),
-				new Point(c.row() + 1, c.column()),
-				new Point(c.row() + 1, c.column() + 1))
+				new Point(row - 1, column - 1), new Point(row - 1, column), new Point(row - 1, column + 1),
+				new Point(row, column - 1), /* Centre */ new Point(row, column + 1),
+				new Point(row + 1, column - 1), new Point(row + 1, column), new Point(row + 1, column + 1))
 				.filter(p -> 0 <= p.row() && p.row() < 10
 						&& 0 <= p.column() && p.column() < 10);
 	}
