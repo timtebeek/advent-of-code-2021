@@ -52,9 +52,7 @@ class DayElevenTest {
 	}
 
 	private static int countFlashesAfterIterations(String sample, int iterations) {
-		return Stream.iterate(
-				Grid.parse(sample),
-				Grid::step)
+		return Stream.iterate(Grid.parse(sample), Grid::step)
 				.limit(iterations + 1)
 				.mapToInt(Grid::flashesInPreviousStep)
 				.sum();
