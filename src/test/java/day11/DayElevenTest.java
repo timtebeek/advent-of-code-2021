@@ -71,7 +71,6 @@ class DayElevenTest {
 	}
 
 	private static int stepsUntilAllFlashSimultaneously(String input) {
-		Grid grid = Grid.parse(input);
 		int i = 0, difference = 0;
 		Grid current = Grid.parse(input);
 		do {
@@ -101,28 +100,28 @@ record Grid(Map<Point, Integer> octopuses, int flashes) {
 
 	public Grid step() {
 		Map<Point, Integer> nextOctopuses = new HashMap<>(octopuses);
+
+		// Increase all by one for step
 		nextOctopuses.replaceAll((t, u) -> u + 1);
+
 		Set<Point> hasFlashed = new HashSet<>();
-
-		int flashCount;
-		do {
-
-			flashCount = hasFlashed.size();
-
+		while (true) {
 			// Cascading flashes this step
 			List<Point> flashing = nextOctopuses.entrySet().stream()
 					.filter(entry -> !hasFlashed.contains(entry.getKey()))
 					.filter(entry -> 9 < entry.getValue())
 					.map(Entry::getKey)
 					.toList();
+			if (flashing.isEmpty()) {
+				break;
+			}
 			hasFlashed.addAll(flashing);
 
 			// Increase neighbours
 			flashing.stream()
 					.flatMap(Point::neighbours)
 					.forEach(neighbour -> nextOctopuses.compute(neighbour, (t, u) -> u + 1));
-
-		} while (flashCount < hasFlashed.size()); // Continue until there's no more increase
+		}
 
 		// Set to zero
 		nextOctopuses.replaceAll((t, u) -> 9 < u ? 0 : u);
