@@ -107,11 +107,11 @@ record Grid(int iteration, Map<Point, Integer> octopuses, int flashesInPreviousS
 					.filter(entry -> !hasFlashed.contains(entry.getKey()))
 					.filter(entry -> 9 < entry.getValue())
 					.map(Entry::getKey)
+					.peek(hasFlashed::add)
 					.toList();
 			if (flashing.isEmpty()) {
 				break;
 			}
-			hasFlashed.addAll(flashing);
 
 			// Increase neighbours
 			flashing.stream()
