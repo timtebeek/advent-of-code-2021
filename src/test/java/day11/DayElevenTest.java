@@ -54,10 +54,9 @@ class DayElevenTest {
 		return Stream.iterate(
 				Grid.parse(sample),
 				Grid::step)
-				.skip(iterations)
-				.mapToInt(Grid::flashes)
-				.findFirst()
-				.getAsInt();
+				.limit(iterations + 1)
+				.mapToInt(Grid::flashesInPreviousStep)
+				.sum();
 	}
 
 	@Test
@@ -71,20 +70,20 @@ class DayElevenTest {
 	}
 
 	private static int stepsUntilAllFlashSimultaneously(String input) {
-		int i = 0, difference = 0;
+		int i = 1;
 		Grid current = Grid.parse(input);
-		do {
-			Grid next = current.step();
-			difference = next.flashes() - current.flashes();
-			current = next;
+		while (true) {
+			current = current.step();
+			if (current.flashesInPreviousStep() == 100) {
+				return i;
+			}
 			i++;
-		} while (difference != 100);
-		return i;
+		}
 	}
 
 }
 
-record Grid(Map<Point, Integer> octopuses, int flashes) {
+record Grid(Map<Point, Integer> octopuses, int flashesInPreviousStep) {
 
 	public static Grid parse(String input) {
 		String[] split = input.split("\n");
@@ -126,7 +125,7 @@ record Grid(Map<Point, Integer> octopuses, int flashes) {
 		// Set to zero
 		nextOctopuses.replaceAll((t, u) -> 9 < u ? 0 : u);
 
-		return new Grid(nextOctopuses, flashes + hasFlashed.size());
+		return new Grid(nextOctopuses, hasFlashed.size());
 	}
 }
 
