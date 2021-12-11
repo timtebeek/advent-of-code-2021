@@ -70,20 +70,16 @@ class DayElevenTest {
 	}
 
 	private static int stepsUntilAllFlashSimultaneously(String input) {
-		int i = 1;
-		Grid current = Grid.parse(input);
-		while (true) {
-			current = current.step();
-			if (current.flashesInPreviousStep() == 100) {
-				return i;
-			}
-			i++;
-		}
+		return Stream.iterate(Grid.parse(input), Grid::step)
+				.dropWhile(grid -> grid.flashesInPreviousStep() != 100)
+				.mapToInt(Grid::iteration)
+				.findFirst()
+				.getAsInt();
 	}
 
 }
 
-record Grid(Map<Point, Integer> octopuses, int flashesInPreviousStep) {
+record Grid(int iteration, Map<Point, Integer> octopuses, int flashesInPreviousStep) {
 
 	public static Grid parse(String input) {
 		String[] split = input.split("\n");
@@ -94,7 +90,7 @@ record Grid(Map<Point, Integer> octopuses, int flashesInPreviousStep) {
 				points.put(new Point(row, coumns), Integer.valueOf(values[coumns]));
 			}
 		}
-		return new Grid(points, 0);
+		return new Grid(0, points, 0);
 	}
 
 	public Grid step() {
@@ -125,7 +121,7 @@ record Grid(Map<Point, Integer> octopuses, int flashesInPreviousStep) {
 		// Set to zero
 		nextOctopuses.replaceAll((t, u) -> 9 < u ? 0 : u);
 
-		return new Grid(nextOctopuses, hasFlashed.size());
+		return new Grid(iteration + 1, nextOctopuses, hasFlashed.size());
 	}
 }
 
