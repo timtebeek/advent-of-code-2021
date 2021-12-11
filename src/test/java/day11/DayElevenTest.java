@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayElevenTest {
@@ -94,10 +95,10 @@ record Grid(int iteration, Map<Point, Integer> octopuses, int flashesInPreviousS
 	}
 
 	public Grid step() {
-		Map<Point, Integer> nextOctopuses = new HashMap<>(octopuses);
-
 		// Increase all by one for step
-		nextOctopuses.replaceAll((t, u) -> u + 1);
+		Map<Point, Integer> nextOctopuses = octopuses.entrySet().stream().collect(toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue() + 1));
 
 		Set<Point> hasFlashed = new HashSet<>();
 		while (true) {
