@@ -27,12 +27,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleOne() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_ONE).traverse(false).size()).isEqualTo(10);
+		assertThat(CaveSystem.parse(SAMPLE_ONE).traverse(false).count()).isEqualTo(10);
 	}
 
 	@Test
 	void partTwoSampleOne() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_ONE).traverse(true).size()).isEqualTo(36);
+		assertThat(CaveSystem.parse(SAMPLE_ONE).traverse(true).count()).isEqualTo(36);
 	}
 
 	private static final String SAMPLE_TWO = """
@@ -50,12 +50,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleTwo() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_TWO).traverse(false).size()).isEqualTo(19);
+		assertThat(CaveSystem.parse(SAMPLE_TWO).traverse(false).count()).isEqualTo(19);
 	}
 
 	@Test
 	void partTwoSampleTwo() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_TWO).traverse(true).size()).isEqualTo(103);
+		assertThat(CaveSystem.parse(SAMPLE_TWO).traverse(true).count()).isEqualTo(103);
 	}
 
 	private static final String SAMPLE_THREE = """
@@ -81,12 +81,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleThree() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_THREE).traverse(false).size()).isEqualTo(226);
+		assertThat(CaveSystem.parse(SAMPLE_THREE).traverse(false).count()).isEqualTo(226);
 	}
 
 	@Test
 	void partTwoSampleThree() throws Exception {
-		assertThat(CaveSystem.parse(SAMPLE_THREE).traverse(true).size()).isEqualTo(3509);
+		assertThat(CaveSystem.parse(SAMPLE_THREE).traverse(true).count()).isEqualTo(3509);
 	}
 
 	private static final String INPUT = """
@@ -115,12 +115,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		assertThat(CaveSystem.parse(INPUT).traverse(false).size()).isEqualTo(4885);
+		assertThat(CaveSystem.parse(INPUT).traverse(false).count()).isEqualTo(4885);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
-		assertThat(CaveSystem.parse(INPUT).traverse(true).size()).isEqualTo(117095);
+		assertThat(CaveSystem.parse(INPUT).traverse(true).count()).isEqualTo(117095);
 	}
 
 }
@@ -140,17 +140,17 @@ record CaveSystem(Cave start, Cave end) {
 		return new CaveSystem(caves.get("start"), caves.get("end"));
 	}
 
-	List<List<Cave>> traverse(boolean permitSingleSmallCaveTwice) {
+	Stream<List<Cave>> traverse(boolean permitSingleSmallCaveTwice) {
 		return pathsFromCaveToEnd(start, List.of(), permitSingleSmallCaveTwice);
 	}
 
-	private List<List<Cave>> pathsFromCaveToEnd(
+	private Stream<List<Cave>> pathsFromCaveToEnd(
 			Cave current,
 			List<Cave> pathToPrevious,
 			boolean permitSingleSmallCaveTwice) {
 		List<Cave> pathToCurrent = Stream.concat(pathToPrevious.stream(), Stream.of(current)).toList();
 		if (current.equals(end)) {
-			return List.of(pathToCurrent);
+			return Stream.of(pathToCurrent);
 		}
 
 		Map<String, Long> smallCaveVisits = pathToCurrent.stream()
@@ -162,8 +162,7 @@ record CaveSystem(Cave start, Cave end) {
 						: smallCaveVisits.keySet(); // Exclude further small cave revisits
 		return current.connections().stream()
 				.filter(cave -> !reentryForbidden.contains(cave.name()))
-				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCaveTwice).stream())
-				.toList();
+				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCaveTwice));
 	}
 
 }
