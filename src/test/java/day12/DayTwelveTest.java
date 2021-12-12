@@ -6,12 +6,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DayElevenTest {
+class DayTwelveTest {
 
 	private static final String SAMPLE_ONE = """
 			start-A
@@ -25,7 +26,12 @@ class DayElevenTest {
 
 	@Test
 	void partOneSampleOne() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_ONE)).isEqualTo(10);
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_ONE, false)).isEqualTo(10);
+	}
+
+	@Test
+	void partTwoSampleOne() throws Exception {
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_ONE, true)).isEqualTo(36);
 	}
 
 	private static final String SAMPLE_TWO = """
@@ -43,7 +49,12 @@ class DayElevenTest {
 
 	@Test
 	void partOneSampleTwo() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_TWO)).isEqualTo(19);
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_TWO, false)).isEqualTo(19);
+	}
+
+	@Test
+	void partTwoSampleTwo() throws Exception {
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_TWO, true)).isEqualTo(103);
 	}
 
 	private static final String SAMPLE_THREE = """
@@ -69,7 +80,12 @@ class DayElevenTest {
 
 	@Test
 	void partOneSampleThree() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_THREE)).isEqualTo(226);
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_THREE, false)).isEqualTo(226);
+	}
+
+	@Test
+	void partTwoSampleThree() throws Exception {
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_THREE, true)).isEqualTo(3509);
 	}
 
 	private static final String INPUT = """
@@ -98,12 +114,17 @@ class DayElevenTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT)).isEqualTo(-1);
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, false)).isEqualTo(4885);
 	}
 
-	private static int distinctPathsThatVisitSmallCavesAtMostOnce(String input) {
+	@Test
+	void partTwoInput() throws Exception {
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, true)).isEqualTo(-1);
+	}
+
+	private static int distinctPathsThatVisitSmallCavesAtMostOnce(String input, boolean permitSingleSmallCave) {
 		CaveSystem system = CaveSystem.parse(input);
-		List<List<Cave>> paths = system.pathsFromCaveToEnd(system.start(), List.of());
+		List<List<Cave>> paths = system.pathsFromCaveToEnd(system.start(), List.of(), permitSingleSmallCave);
 		return paths.size();
 	}
 
@@ -124,16 +145,18 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 		return new CaveSystem(caves.get("start"), caves.get("end"), caves);
 	}
 
-	List<List<Cave>> pathsFromCaveToEnd(Cave current, List<Cave> pathToPrevious) {
+	List<List<Cave>> pathsFromCaveToEnd(Cave current, List<Cave> pathToPrevious, boolean permitSingleSmallCave) {
 		List<Cave> pathToCurrent = Stream.concat(pathToPrevious.stream(), Stream.of(current)).toList();
 		if (current.equals(end)) {
 			return List.of(pathToCurrent);
 		}
 
-		List<Cave> reentryForbidden = pathToCurrent.stream().filter(Cave::isSmall).toList();
+		Map<String, Long> smallCavesVisited = pathToCurrent.stream()
+				.filter(Cave::isSmall)
+				.collect(groupingBy(Cave::name, counting()));
 		return current.connections().stream()
-				.filter(Predicate.not(reentryForbidden::contains))
-				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent).stream())
+				.filter(cave -> !smallCavesVisited.containsKey(cave.name()))
+				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCave).stream())
 				.toList();
 	}
 
