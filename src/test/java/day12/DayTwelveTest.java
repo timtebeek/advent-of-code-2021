@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.counting;
@@ -119,13 +120,12 @@ class DayTwelveTest {
 
 	@Test
 	void partTwoInput() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, true)).isEqualTo(-1);
+		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, true)).isEqualTo(117095);
 	}
 
-	private static int distinctPathsThatVisitSmallCavesAtMostOnce(String input, boolean permitSingleSmallCave) {
+	private static int distinctPathsThatVisitSmallCavesAtMostOnce(String input, boolean permitSingleSmallCaveTwice) {
 		CaveSystem system = CaveSystem.parse(input);
-		List<List<Cave>> paths = system.pathsFromCaveToEnd(system.start(), List.of(), permitSingleSmallCave);
-		return paths.size();
+		return system.pathsFromCaveToEnd(system.start(), List.of(), permitSingleSmallCaveTwice).size();
 	}
 
 }
@@ -145,7 +145,7 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 		return new CaveSystem(caves.get("start"), caves.get("end"), caves);
 	}
 
-	List<List<Cave>> pathsFromCaveToEnd(Cave current, List<Cave> pathToPrevious, boolean permitSingleSmallCave) {
+	List<List<Cave>> pathsFromCaveToEnd(Cave current, List<Cave> pathToPrevious, boolean permitSingleSmallCaveTwice) {
 		List<Cave> pathToCurrent = Stream.concat(pathToPrevious.stream(), Stream.of(current)).toList();
 		if (current.equals(end)) {
 			return List.of(pathToCurrent);
@@ -154,15 +154,17 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 		Map<String, Long> smallCavesVisited = pathToCurrent.stream()
 				.filter(Cave::isSmall)
 				.collect(groupingBy(Cave::name, counting()));
+		boolean anySmallCaveVisitedTwice = smallCavesVisited.values().stream().anyMatch(visits -> 1 < visits);
+		Set<String> reentryForbidden = permitSingleSmallCaveTwice && !anySmallCaveVisitedTwice ? Set.of(start.name()) : smallCavesVisited.keySet();
 		return current.connections().stream()
-				.filter(cave -> !smallCavesVisited.containsKey(cave.name()))
-				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCave).stream())
+				.filter(cave -> !reentryForbidden.contains(cave.name()))
+				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCaveTwice).stream())
 				.toList();
 	}
 
 }
 
-record Cave(String name, List<Cave> connections) {
+record Cave(String name, List<Cave> connections) implements Comparable<Cave> {
 	boolean isSmall() {
 		return name.equals(name.toLowerCase());
 	}
@@ -178,5 +180,10 @@ record Cave(String name, List<Cave> connections) {
 	@Override
 	public String toString() {
 		return name;
+	}
+
+	@Override
+	public int compareTo(Cave o) {
+		return name.compareTo(o.name);
 	}
 }
