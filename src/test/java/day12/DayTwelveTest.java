@@ -27,12 +27,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleOne() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_ONE, false)).isEqualTo(10);
+		assertThat(distinctPaths(SAMPLE_ONE, false)).isEqualTo(10);
 	}
 
 	@Test
 	void partTwoSampleOne() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_ONE, true)).isEqualTo(36);
+		assertThat(distinctPaths(SAMPLE_ONE, true)).isEqualTo(36);
 	}
 
 	private static final String SAMPLE_TWO = """
@@ -50,12 +50,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleTwo() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_TWO, false)).isEqualTo(19);
+		assertThat(distinctPaths(SAMPLE_TWO, false)).isEqualTo(19);
 	}
 
 	@Test
 	void partTwoSampleTwo() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_TWO, true)).isEqualTo(103);
+		assertThat(distinctPaths(SAMPLE_TWO, true)).isEqualTo(103);
 	}
 
 	private static final String SAMPLE_THREE = """
@@ -81,12 +81,12 @@ class DayTwelveTest {
 
 	@Test
 	void partOneSampleThree() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_THREE, false)).isEqualTo(226);
+		assertThat(distinctPaths(SAMPLE_THREE, false)).isEqualTo(226);
 	}
 
 	@Test
 	void partTwoSampleThree() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(SAMPLE_THREE, true)).isEqualTo(3509);
+		assertThat(distinctPaths(SAMPLE_THREE, true)).isEqualTo(3509);
 	}
 
 	private static final String INPUT = """
@@ -115,22 +115,22 @@ class DayTwelveTest {
 
 	@Test
 	void partOneInput() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, false)).isEqualTo(4885);
+		assertThat(distinctPaths(INPUT, false)).isEqualTo(4885);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
-		assertThat(distinctPathsThatVisitSmallCavesAtMostOnce(INPUT, true)).isEqualTo(117095);
+		assertThat(distinctPaths(INPUT, true)).isEqualTo(117095);
 	}
 
-	private static int distinctPathsThatVisitSmallCavesAtMostOnce(String input, boolean permitSingleSmallCaveTwice) {
+	private static int distinctPaths(String input, boolean permitSingleSmallCaveTwice) {
 		CaveSystem system = CaveSystem.parse(input);
 		return system.pathsFromCaveToEnd(system.start(), List.of(), permitSingleSmallCaveTwice).size();
 	}
 
 }
 
-record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
+record CaveSystem(Cave start, Cave end) {
 
 	static CaveSystem parse(String input) {
 		Map<String, Cave> caves = new HashMap<>();
@@ -142,7 +142,7 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 			left.connections().add(right);
 			right.connections().add(left);
 		}
-		return new CaveSystem(caves.get("start"), caves.get("end"), caves);
+		return new CaveSystem(caves.get("start"), caves.get("end"));
 	}
 
 	List<List<Cave>> pathsFromCaveToEnd(Cave current, List<Cave> pathToPrevious, boolean permitSingleSmallCaveTwice) {
@@ -151,11 +151,13 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 			return List.of(pathToCurrent);
 		}
 
-		Map<String, Long> smallCavesVisited = pathToCurrent.stream()
+		Map<String, Long> smallCaveVisits = pathToCurrent.stream()
 				.filter(Cave::isSmall)
 				.collect(groupingBy(Cave::name, counting()));
-		boolean anySmallCaveVisitedTwice = smallCavesVisited.values().stream().anyMatch(visits -> 1 < visits);
-		Set<String> reentryForbidden = permitSingleSmallCaveTwice && !anySmallCaveVisitedTwice ? Set.of(start.name()) : smallCavesVisited.keySet();
+		Set<String> reentryForbidden = permitSingleSmallCaveTwice
+				&& smallCaveVisits.values().stream().noneMatch(visits -> 1 < visits)
+						? Set.of(start.name()) // Do not go back through start
+						: smallCaveVisits.keySet(); // Exclude further small cave revisits
 		return current.connections().stream()
 				.filter(cave -> !reentryForbidden.contains(cave.name()))
 				.flatMap(next -> pathsFromCaveToEnd(next, pathToCurrent, permitSingleSmallCaveTwice).stream())
@@ -164,26 +166,8 @@ record CaveSystem(Cave start, Cave end, Map<String, Cave> caves) {
 
 }
 
-record Cave(String name, List<Cave> connections) implements Comparable<Cave> {
+record Cave(String name, List<Cave> connections) {
 	boolean isSmall() {
 		return name.equals(name.toLowerCase());
-	}
-
-	boolean isStart() {
-		return name.equals("start");
-	}
-
-	boolean isEnd() {
-		return name.equals("end");
-	}
-
-	@Override
-	public String toString() {
-		return name;
-	}
-
-	@Override
-	public int compareTo(Cave o) {
-		return name.compareTo(o.name);
 	}
 }
