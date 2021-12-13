@@ -51,6 +51,13 @@ class DayThirteenTest {
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
 		Paper paper = Paper.parse(input);
+		assertThat(paper.fold(paper.instructions().get(0)).dots().size()).isEqualTo(682);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		Paper paper = Paper.parse(input);
 		for (Instruction instruction : paper.instructions()) {
 			paper = paper.fold(instruction);
 		}
