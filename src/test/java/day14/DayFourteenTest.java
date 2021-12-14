@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -60,13 +59,9 @@ class DayFourteenTest {
 	}
 
 	private static long subtractLeastCommonFromMostCommonAfterIterations(String input, int iterations) {
-		String[] split = input.split("\n\n");
-		String template = split[0];
-		Map<Pair, String> rules = parseRules(split);
-
-		Polymer polymer = Polymer.parse(template);
+		Polymer polymer = Polymer.parse(input);
 		for (int i = 0; i < iterations; i++) {
-			polymer = polymer.apply(rules);
+			polymer = polymer.apply();
 		}
 
 		List<Long> list = polymer.pairs()
@@ -75,7 +70,7 @@ class DayFourteenTest {
 				.flatMap(entry -> Stream.of(
 						Map.entry(entry.getKey().left(), entry.getValue()),
 						Map.entry(entry.getKey().right(), entry.getValue())))
-				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum))
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum))
 				.values()
 				.stream()
 				.sorted()
@@ -83,29 +78,36 @@ class DayFourteenTest {
 		return list.get(list.size() - 1) - list.get(0);
 	}
 
-	private static Map<Pair, String> parseRules(String[] split) {
-		return Stream.of(split[1].split("\n"))
-				.map(Rule::parse)
-				.collect(toMap(Rule::pair, Rule::inserted));
-	}
-
 }
 
-record Polymer(Map<Pair, Long> pairs) {
+record Polymer(Map<Pair, Long> pairs, Map<Pair, String> rules) {
 
-	public static Polymer parse(String template) {
+	static Polymer parse(String input) {
+		String[] split = input.split("\n\n");
+		return new Polymer(
+				parsePairs(split[0]),
+				parseRules(split[1]));
+	}
+
+	private static Map<Pair, Long> parsePairs(String split) {
 		Map<Pair, Long> pairs = new HashMap<>();
-		String[] elements = template.split("");
+		String[] elements = split.split("");
 		for (int i = 0; i < elements.length - 1; i++) {
 			String left = elements[i];
 			String right = elements[i + 1];
 			Pair pair = new Pair(left, right);
 			pairs.merge(pair, 1L, Long::sum);
 		}
-		return new Polymer(pairs);
+		return pairs;
 	}
 
-	public Polymer apply(Map<Pair, String> rules) {
+	private static Map<Pair, String> parseRules(String rules) {
+		return Stream.of(rules.split("\n"))
+				.map(Rule::parse)
+				.collect(toMap(Rule::pair, Rule::inserted));
+	}
+
+	Polymer apply() {
 		Map<Pair, Long> next = new HashMap<>();
 
 		for (Entry<Pair, Long> entry : pairs.entrySet()) {
@@ -120,7 +122,7 @@ record Polymer(Map<Pair, Long> pairs) {
 			next.merge(right, count, Long::sum);
 		}
 
-		return new Polymer(next);
+		return new Polymer(next, rules);
 	}
 
 }
