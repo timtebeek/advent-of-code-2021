@@ -1,13 +1,13 @@
 package day14;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,34 +39,47 @@ class DayFourteenTest {
 
 	@Test
 	void partOneSample() throws Exception {
-		assertThat(something(SAMPLE, 10)).isEqualTo(1588);
+		assertThat(subtractLeastCommonFromMostCommonAfterIterations(SAMPLE, 10) / 2 + 1).isEqualTo(1588);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(something(input, 10)).isEqualTo(3831);
+		assertThat(subtractLeastCommonFromMostCommonAfterIterations(input, 10) / 2).isEqualTo(3831);
 	}
 
 	@Test
-	@Disabled
 	void partTwoSample() throws Exception {
-		assertThat(something(SAMPLE, 40)).isEqualTo(2188189693529L);
+		assertThat(subtractLeastCommonFromMostCommonAfterIterations(SAMPLE, 40) / 2 + 1).isEqualTo(2188189693529L);
 	}
 
-	private static long something(String input, int iterations) {
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(subtractLeastCommonFromMostCommonAfterIterations(input, 40) / 2).isEqualTo(5725739914282L);
+	}
+
+	private static long subtractLeastCommonFromMostCommonAfterIterations(String input, int iterations) {
 		String[] split = input.split("\n\n");
 		String template = split[0];
 		Map<Pair, String> rules = parseRules(split);
+
 		Polymer polymer = Polymer.parse(template);
 		for (int i = 0; i < iterations; i++) {
-			System.out.println(i);
-			polymer.apply(rules);
+			polymer = polymer.apply(rules);
 		}
 
-		Map<String, Long> counts = Stream.of(polymer.toString().split(""))
-				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-		List<Long> list = counts.values().stream().sorted().toList();
+		List<Long> list = polymer.pairs()
+				.entrySet()
+				.stream()
+				.flatMap(entry -> Stream.of(
+						Map.entry(entry.getKey().left(), entry.getValue()),
+						Map.entry(entry.getKey().right(), entry.getValue())))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum))
+				.values()
+				.stream()
+				.sorted()
+				.toList();
 		return list.get(list.size() - 1) - list.get(0);
 	}
 
@@ -78,65 +91,36 @@ class DayFourteenTest {
 
 }
 
-record Polymer(Element start) {
+record Polymer(Map<Pair, Long> pairs) {
 
-	static Polymer parse(String template) {
-		String[] split = template.split("");
-		Element start = new Element(split[0], null);
-		Element current = start;
-		for (int i = 1; i < split.length; i++) {
-			Element right = new Element(split[i], null);
-			current.setRight(right);
-			current = right;
+	public static Polymer parse(String template) {
+		Map<Pair, Long> pairs = new HashMap<>();
+		String[] elements = template.split("");
+		for (int i = 0; i < elements.length - 1; i++) {
+			String left = elements[i];
+			String right = elements[i + 1];
+			Pair pair = new Pair(left, right);
+			pairs.merge(pair, 1L, Long::sum);
 		}
-		return new Polymer(start);
+		return new Polymer(pairs);
 	}
 
-	void apply(Map<Pair, String> rules) {
-		Element left = start;
-		while (true) {
-			Element right = left.getRight();
-			if (right == null) {
-				break;
-			}
-			Pair pair = new Pair(left.getName(), right.getName());
-			left.setRight(new Element(rules.get(pair), right));
-			left = right;
+	public Polymer apply(Map<Pair, String> rules) {
+		Map<Pair, Long> next = new HashMap<>();
+
+		for (Entry<Pair, Long> entry : pairs.entrySet()) {
+			Pair pair = entry.getKey();
+			Long count = entry.getValue();
+
+			String inserted = rules.get(pair);
+			Pair left = new Pair(pair.left(), inserted);
+			Pair right = new Pair(inserted, pair.right());
+
+			next.merge(left, count, Long::sum);
+			next.merge(right, count, Long::sum);
 		}
-	}
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		Element current = start;
-		while (current != null) {
-			sb.append(current.getName());
-			current = current.getRight();
-		}
-		return sb.toString();
-	}
-
-}
-
-class Element {
-	private String name;
-	private Element right;
-
-	public Element(String name, Element right) {
-		this.name = name;
-		this.right = right;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public Element getRight() {
-		return right;
-	}
-
-	public void setRight(Element right) {
-		this.right = right;
+		return new Polymer(next);
 	}
 
 }
@@ -154,6 +138,11 @@ record Pair(String left, String right) {
 
 	static Pair parse(String pair) {
 		return new Pair(pair.substring(0, 1), pair.substring(1));
+	}
+
+	@Override
+	public String toString() {
+		return left + right;
 	}
 
 }
