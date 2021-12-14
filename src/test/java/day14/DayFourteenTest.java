@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -59,29 +58,15 @@ class DayFourteenTest {
 	}
 
 	private static long subtractLeastCommonFromMostCommonAfterIterations(String input, int iterations) {
-		Polymer polymer = Polymer.parse(input);
-		for (int i = 0; i < iterations; i++) {
-			polymer = polymer.apply();
-		}
-
-		List<Long> list = polymer.pairs()
-				.entrySet()
-				.stream()
-				.flatMap(entry -> Stream.of(
-						Map.entry(entry.getKey().left(), entry.getValue()),
-						Map.entry(entry.getKey().right(), entry.getValue())))
-				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum))
-				.values()
-				.stream()
-				.sorted()
-				.toList();
+		Polymer polymer = Stream.iterate(Polymer.parse(input), Polymer::apply)
+				.skip(iterations).findFirst().get();
+		List<Long> list = polymer.countElements().values().stream().sorted().toList();
 		return list.get(list.size() - 1) - list.get(0);
 	}
 
 }
 
 record Polymer(Map<Pair, Long> pairs, Map<Pair, String> rules) {
-
 	static Polymer parse(String input) {
 		String[] split = input.split("\n\n");
 		return new Polymer(
@@ -93,10 +78,7 @@ record Polymer(Map<Pair, Long> pairs, Map<Pair, String> rules) {
 		Map<Pair, Long> pairs = new HashMap<>();
 		String[] elements = split.split("");
 		for (int i = 0; i < elements.length - 1; i++) {
-			String left = elements[i];
-			String right = elements[i + 1];
-			Pair pair = new Pair(left, right);
-			pairs.merge(pair, 1L, Long::sum);
+			pairs.merge(new Pair(elements[i], elements[i + 1]), 1L, Long::sum);
 		}
 		return pairs;
 	}
@@ -108,43 +90,32 @@ record Polymer(Map<Pair, Long> pairs, Map<Pair, String> rules) {
 	}
 
 	Polymer apply() {
-		Map<Pair, Long> next = new HashMap<>();
-
-		for (Entry<Pair, Long> entry : pairs.entrySet()) {
-			Pair pair = entry.getKey();
-			Long count = entry.getValue();
-
-			String inserted = rules.get(pair);
-			Pair left = new Pair(pair.left(), inserted);
-			Pair right = new Pair(inserted, pair.right());
-
-			next.merge(left, count, Long::sum);
-			next.merge(right, count, Long::sum);
-		}
-
-		return new Polymer(next, rules);
+		return new Polymer(pairs.entrySet().stream()
+				.flatMap(entry -> Stream.of(
+						Map.entry(new Pair(entry.getKey().left(), rules.get(entry.getKey())), entry.getValue()),
+						Map.entry(new Pair(rules.get(entry.getKey()), entry.getKey().right()), entry.getValue())))
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum)),
+				rules);
 	}
 
+	Map<String, Long> countElements() {
+		return pairs.entrySet().stream()
+				.flatMap(entry -> Stream.of(
+						Map.entry(entry.getKey().left(), entry.getValue()),
+						Map.entry(entry.getKey().right(), entry.getValue())))
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
+	}
 }
 
 record Rule(Pair pair, String inserted) {
-
 	static Rule parse(String line) {
 		String[] split = line.split(" -> ");
 		return new Rule(Pair.parse(split[0]), split[1]);
 	}
-
 }
 
 record Pair(String left, String right) {
-
 	static Pair parse(String pair) {
 		return new Pair(pair.substring(0, 1), pair.substring(1));
 	}
-
-	@Override
-	public String toString() {
-		return left + right;
-	}
-
 }
