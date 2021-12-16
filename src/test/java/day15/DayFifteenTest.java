@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayFifteenTest {
@@ -56,7 +55,7 @@ class DayFifteenTest {
 
 }
 
-record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point end) {
+record Cave(Map<Point, Long> risk, Point end) {
 
 	static Cave parse(String input) {
 		// Risk map
@@ -75,13 +74,7 @@ record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point en
 		long maxY = riskMap.keySet().stream().mapToLong(Point::y).max().getAsLong();
 		Point end = new Point(maxX, maxY);
 
-		// Connections between points
-		Map<Point, List<Point>> connections = riskMap.keySet().stream()
-				.collect(toMap(Function.identity(), p -> p.connections(end)
-						// .sorted((a, b) -> Long.compare(riskMap.get(a), riskMap.get(b)))
-						.toList()));
-
-		return new Cave(riskMap, connections, end);
+		return new Cave(riskMap, end);
 	}
 
 	static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
@@ -121,7 +114,7 @@ record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point en
 				return reconstruct(cameFrom, current);
 			}
 			openSet.remove(current);
-			for (Point neighbor : connections.get(current)) {
+			for (Point neighbor : current.connections(goal)) {
 				// d(current,neighbor) is the weight of the edge from current to neighbor
 				// tentative_gScore is the distance from start to the neighbor through current
 				Long tentativeGScore = gScore.get(current) + risk.get(neighbor);
@@ -143,13 +136,14 @@ record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point en
 }
 
 record Point(long x, long y) {
-	Stream<Point> connections(Point max) {
+	List<Point> connections(Point max) {
 		return Stream.of(
 				new Point(x + 1, y),
 				new Point(x, y + 1),
 				new Point(x - 1, y),
 				new Point(x, y - 1))
 				.filter(p -> 0 <= p.x() && p.x() <= max.x()
-						&& 0 <= p.y() && p.y() <= max.y());
+						&& 0 <= p.y() && p.y() <= max.y())
+				.toList();
 	}
 }
