@@ -4,12 +4,15 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -36,18 +39,19 @@ class DayFifteenTest {
 	}
 
 	@Test
-//	@Disabled
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(lowestTotalRisk(input)).isEqualTo(-1);
+		assertThat(lowestTotalRisk(input)).isEqualTo(540);
 	}
 
 	private static long lowestTotalRisk(String input) {
 		Cave cave = Cave.parse(input);
-		List<Point> path = new ArrayList<>(200);
+		Function<Point, Long> cost = p -> cave.end().x() - p.x() + cave.end().y() - p.y();
 		Point start = new Point(0, 0);
-		path.add(start);
-		return cave.lowestTotalRiskPath(Long.MAX_VALUE, path) - cave.risk().get(start);
+		return cave.lowestTotalRiskPath(start, cave.end(), cost)
+				.stream()
+				.mapToLong(cave.risk()::get)
+				.sum() - cave.risk().get(start);
 	}
 
 }
@@ -67,8 +71,8 @@ record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point en
 		}
 
 		// End point
-		int maxX = riskMap.keySet().stream().mapToInt(Point::x).max().getAsInt();
-		int maxY = riskMap.keySet().stream().mapToInt(Point::y).max().getAsInt();
+		long maxX = riskMap.keySet().stream().mapToLong(Point::x).max().getAsLong();
+		long maxY = riskMap.keySet().stream().mapToLong(Point::y).max().getAsLong();
 		Point end = new Point(maxX, maxY);
 
 		// Connections between points
@@ -80,38 +84,65 @@ record Cave(Map<Point, Long> risk, Map<Point, List<Point>> connections, Point en
 		return new Cave(riskMap, connections, end);
 	}
 
-	long lowestTotalRiskPath(long lowestSoFar, List<Point> path) {
-		Point tail = path.get(path.size() - 1);
-		long score = path.stream().mapToLong(risk::get).sum();		// TODO Use lowest soFar instead
-		// Do not explore further
-		if (tail.equals(end)) {
-			return score;
-		}
+	static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
+		Deque<Point> path = new LinkedList<>();
+		do {
+			path.push(current);
+			current = cameFrom.get(current);
+		} while (current != null);
+		return path;
+	}
 
-		List<Point> list = connections.get(tail).stream()
-				.filter(Predicate.not(path::contains))
-				.toList();
-		if (list.isEmpty() || lowestSoFar < score) {
-			return Long.MAX_VALUE;
-		}
+	/**
+	 * @see https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
+	 */
+	Collection<Point> lowestTotalRiskPath(Point start, Point goal, Function<Point, Long> heuristic) {
+		Set<Point> openSet = new HashSet<>();
+		openSet.add(start);
 
-		// Explore each option, limited by lowest so far
-		long lowestThisRound = lowestSoFar;
-		for (Point point : list) {
-			path.add(point);
-			long lowestFromPath = lowestTotalRiskPath(lowestThisRound, path);
-			if (lowestFromPath < lowestThisRound) {
-				lowestThisRound = lowestFromPath;
-				System.out.println("%d %s".formatted(lowestFromPath, path));
+		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently
+		// known.
+		Map<Point, Point> cameFrom = new HashMap<>();
+
+		// For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+		Map<Point, Long> gScore = new HashMap<>();
+		gScore.put(start, 0L);
+
+		// For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
+		// how short a path from start to finish can be if it goes through n.
+		Map<Point, Long> fScore = new HashMap<>();
+		fScore.put(start, heuristic.apply(start));
+
+		while (!openSet.isEmpty()) {
+			// This operation can occur in O(1) time if openSet is a min-heap or a priority queue
+			// current := the node in openSet having the lowest fScore[] value
+			Point current = openSet.stream().min((a, b) -> Long.compare(gScore.get(a), gScore.get(b))).get();
+			if (current.equals(goal)) {
+				return reconstruct(cameFrom, current);
 			}
-			path.remove(path.size() - 1);
+			openSet.remove(current);
+			for (Point neighbor : connections.get(current)) {
+				// d(current,neighbor) is the weight of the edge from current to neighbor
+				// tentative_gScore is the distance from start to the neighbor through current
+				Long tentativeGScore = gScore.get(current) + risk.get(neighbor);
+				if (tentativeGScore < gScore.getOrDefault(neighbor, Long.MAX_VALUE)) {
+					// This path to neighbor is better than any previous one. Record it!
+					cameFrom.put(neighbor, current);
+					gScore.put(neighbor, tentativeGScore);
+					fScore.put(neighbor, tentativeGScore + heuristic.apply(neighbor));
+					if (!openSet.contains(neighbor)) {
+						openSet.add(neighbor);
+					}
+				}
+			}
 		}
-		return lowestThisRound;
+
+		throw new IllegalStateException("No route from %s to %s".formatted(start, goal));
 	}
 
 }
 
-record Point(int x, int y) {
+record Point(long x, long y) {
 	Stream<Point> connections(Point max) {
 		return Stream.of(
 				new Point(x + 1, y),
