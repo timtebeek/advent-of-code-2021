@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayFifteenTest {
@@ -34,23 +35,33 @@ class DayFifteenTest {
 
 	@Test
 	void partOneSample() {
-		assertThat(lowestTotalRisk(SAMPLE)).isEqualTo(40);
+		assertThat(lowestTotalRisk(Cave.parse(SAMPLE))).isEqualTo(40);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(lowestTotalRisk(input)).isEqualTo(540);
+		assertThat(lowestTotalRisk(Cave.parse(input))).isEqualTo(540);
 	}
 
-	private static long lowestTotalRisk(String input) {
-		Cave cave = Cave.parse(input);
+	private static long lowestTotalRisk(Cave cave) {
 		Function<Point, Long> cost = p -> cave.end().x() - p.x() + cave.end().y() - p.y();
 		Point start = new Point(0, 0);
 		return cave.lowestTotalRiskPath(start, cave.end(), cost)
 				.stream()
 				.mapToLong(cave.risk()::get)
 				.sum() - cave.risk().get(start);
+	}
+
+	@Test
+	void partTwoSample() {
+		assertThat(lowestTotalRisk(Cave.parse(SAMPLE).multiply())).isEqualTo(315);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(lowestTotalRisk(Cave.parse(input).multiply())).isEqualTo(2879);
 	}
 
 }
@@ -77,7 +88,45 @@ record Cave(Map<Point, Long> risk, Point end) {
 		return new Cave(riskMap, end);
 	}
 
-	static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
+	Cave multiply() {
+		Point shiftRight = new Point(end.x() + 1, 0);
+		Map<Point, Long> once = incrementAndShift(risk, shiftRight);
+		Map<Point, Long> twice = incrementAndShift(once, shiftRight);
+		Map<Point, Long> three = incrementAndShift(twice, shiftRight);
+		Map<Point, Long> four = incrementAndShift(three, shiftRight);
+
+		Map<Point, Long> topRow = new HashMap<>(risk);
+		topRow.putAll(once);
+		topRow.putAll(twice);
+		topRow.putAll(three);
+		topRow.putAll(four);
+
+		Point shiftDown = new Point(0, end.y() + 1);
+		Map<Point, Long> secondRow = incrementAndShift(topRow, shiftDown);
+		Map<Point, Long> thirdRow = incrementAndShift(secondRow, shiftDown);
+		Map<Point, Long> fourthRow = incrementAndShift(thirdRow, shiftDown);
+		Map<Point, Long> fifthRow = incrementAndShift(fourthRow, shiftDown);
+
+		Map<Point, Long> finalCave = new HashMap<>(topRow);
+		finalCave.putAll(secondRow);
+		finalCave.putAll(thirdRow);
+		finalCave.putAll(fourthRow);
+		finalCave.putAll(fifthRow);
+
+		long maxX = finalCave.keySet().stream().mapToLong(Point::x).max().getAsLong();
+		long maxY = finalCave.keySet().stream().mapToLong(Point::y).max().getAsLong();
+		return new Cave(finalCave, new Point(maxX, maxY));
+	}
+
+	private static Map<Point, Long> incrementAndShift(Map<Point, Long> risk, Point shift) {
+		return risk.entrySet().stream()
+				.map(e -> Map.entry(
+						new Point(e.getKey().x() + shift.x(), e.getKey().y() + shift.y()),
+						e.getValue() == 9 ? 1 : e.getValue() + 1))
+				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+	}
+
+	private static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
 		Deque<Point> path = new LinkedList<>();
 		do {
 			path.push(current);
