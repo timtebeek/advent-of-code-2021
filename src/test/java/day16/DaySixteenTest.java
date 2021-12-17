@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -192,16 +193,15 @@ record Packet(int startPosition, int endPosition, int version, int type, long va
 	}
 
 	long eval() {
+		LongStream substream = subpackets.stream().mapToLong(Packet::eval);
 		return switch (type) {
-		case 0 -> subpackets.stream().mapToLong(Packet::eval).sum();// sum
-		case 1 -> subpackets.size() == 1
-				? subpackets.get(0).eval()
-				: subpackets.stream().mapToLong(Packet::eval).reduce((a, b) -> a * b).getAsLong(); // product
-		case 2 -> subpackets.stream().mapToLong(Packet::eval).min().getAsLong();// minimum
-		case 3 -> subpackets.stream().mapToLong(Packet::eval).max().getAsLong();// maximum
+		case 0 -> substream.sum();
+		case 1 -> substream.reduce((a, b) -> a * b).getAsLong(); // product
+		case 2 -> substream.min().getAsLong();
+		case 3 -> substream.max().getAsLong();
 		case 4 -> value; // literal value
 		case 5 -> subpackets.get(0).eval() > subpackets.get(1).eval() ? 1 : 0; // greater than
-		case 6 -> subpackets.get(0).eval() < subpackets.get(1).eval() ? 1 : 0;// less than
+		case 6 -> subpackets.get(0).eval() < subpackets.get(1).eval() ? 1 : 0; // less than
 		case 7 -> subpackets.get(0).eval() == subpackets.get(1).eval() ? 1 : 0; // equal to
 		default -> throw new IllegalArgumentException("Unexpected value: " + type);
 		};
