@@ -1,8 +1,8 @@
 package day16;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.ArrayList;
@@ -14,18 +14,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DaySixteenTest {
 
-	private static final String SAMPLE = """
-			""";
-
-	@Test
-	@Disabled
-	void partOneSample() {
-		assertThat(something(SAMPLE)).isEqualTo(-1);
+	@ParameterizedTest
+	@CsvSource(textBlock = """
+			8A004A801A8002F478,16
+			620080001611562C8802118E34,12
+			C0015000016115A2E0802F182340,23
+			A0016C880162017C3686B18A3D4780,31
+			""")
+	void partOneSample(String input, int versionSum) {
+		assertThat(Parser.parse(input).stream().mapToInt(Packet::version).sum()).isEqualTo(versionSum);
 	}
 
-	private int something(String sample) {
-		// TODO Auto-generated method stub
-		return -1;
+	@ParameterizedTest
+	@CsvFileSource(resources = "input")
+	void partOneSample(String input) {
+		assertThat(Parser.parse(input).stream().mapToInt(Packet::version).sum()).isEqualTo(991);
 	}
 
 	@Test
@@ -68,7 +71,7 @@ class DaySixteenTest {
 			01010000001,1
 			10010000010,2
 			00110000011,3
-						""")
+			""")
 	void parseSubPackets(String bits, int literalValue) {
 		Packet packet = Parser.parseFirstPacket(bits, 0);
 		assertThat(packet.value()).isEqualTo(literalValue);
@@ -78,17 +81,13 @@ class DaySixteenTest {
 
 class Parser {
 
-	public static int parse(String input) {
+	public static Packet parse(String input) {
 		String bits = hexToBits(input);
-
-		int position = 0;
-
-		Packet packet = parseFirstPacket(bits, position);
-		return packet.value();
+		return parseFirstPacket(bits, 0);
 	}
 
 	static String hexToBits(String input) {
-		String bits = Stream.of(input.split(""))
+		return Stream.of(input.split(""))
 				.map(s -> switch (s) {
 				case "0" -> "0000";
 				case "1" -> "0001";
@@ -109,7 +108,6 @@ class Parser {
 				default -> throw new IllegalArgumentException("Unexpected value: " + s);
 				})
 				.collect(joining());
-		return bits;
 	}
 
 	static Packet parseFirstPacket(String bits, int startPosition) {
@@ -131,7 +129,7 @@ class Parser {
 			position = position + 5;
 
 			// Parse literal value
-			int literalValue = Integer.parseInt(sb.toString(), 2);
+			long literalValue = Long.parseLong(sb.toString(), 2);
 			return new Packet(startPosition, position, packetVersion, packetType, literalValue, List.of());
 		}
 
@@ -140,7 +138,6 @@ class Parser {
 		position++;
 
 		List<Packet> subpackets = new ArrayList<>();
-
 		if (lengthTypeId == '0') {
 			// the next 15 bits are a number that represents the total length in bits of the sub-packets contained
 			int totalLengthInBits = Integer.parseInt(bits.substring(position, position + 15), 2);
@@ -163,11 +160,13 @@ class Parser {
 				position = subpacket.endPosition();
 			}
 		}
-
 		return new Packet(startPosition, position, packetVersion, packetType, -1, subpackets);
 	}
 
 }
 
-record Packet(int startPosition, int endPosition, int version, int type, int value, List<Packet> subpackets) {
+record Packet(int startPosition, int endPosition, int version, int type, long value, List<Packet> subpackets) {
+	Stream<Packet> stream() {
+		return Stream.concat(Stream.of(this), subpackets.stream().flatMap(Packet::stream));
+	}
 }
