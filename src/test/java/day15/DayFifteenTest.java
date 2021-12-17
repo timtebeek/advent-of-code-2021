@@ -118,9 +118,10 @@ record Cave(Map<Point, Long> risk, Point end) {
 	}
 
 	long lowestTotalRiskScore() {
-		Function<Point, Long> cost = p -> end.x() - p.x() + end.y() - p.y();
+		// h is the heuristic function. h(n) estimates the cost to reach goal from node n.
+		Function<Point, Long> heuristicEstimateToReachGoal = p -> end.x() - p.x() + end.y() - p.y();
 		Point start = new Point(0, 0);
-		Collection<Point> path = aStarPath(start, end, cost);
+		Collection<Point> path = aStarPath(start, end, heuristicEstimateToReachGoal, risk::get);
 		return path.stream()
 				.mapToLong(risk::get)
 				.sum() - risk.get(start);
@@ -129,7 +130,7 @@ record Cave(Map<Point, Long> risk, Point end) {
 	/**
 	 * @see https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
 	 */
-	private Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic) {
+	private static Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic, Function<Point, Long> weight) {
 		Set<Point> openSet = new HashSet<>();
 		openSet.add(start);
 
@@ -157,7 +158,7 @@ record Cave(Map<Point, Long> risk, Point end) {
 			for (Point neighbor : current.connections(goal)) {
 				// d(current,neighbor) is the weight of the edge from current to neighbor
 				// tentative_gScore is the distance from start to the neighbor through current
-				Long tentativeGScore = gScore.get(current) + risk.get(neighbor);
+				Long tentativeGScore = gScore.get(current) + weight.apply(neighbor);
 				if (tentativeGScore < gScore.getOrDefault(neighbor, Long.MAX_VALUE)) {
 					// This path to neighbor is better than any previous one. Record it!
 					cameFrom.put(neighbor, current);
