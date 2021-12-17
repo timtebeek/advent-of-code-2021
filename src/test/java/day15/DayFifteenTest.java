@@ -35,33 +35,24 @@ class DayFifteenTest {
 
 	@Test
 	void partOneSample() {
-		assertThat(lowestTotalRisk(Cave.parse(SAMPLE))).isEqualTo(40);
+		assertThat(Cave.parse(SAMPLE).lowestTotalRiskScore()).isEqualTo(40);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(lowestTotalRisk(Cave.parse(input))).isEqualTo(540);
-	}
-
-	private static long lowestTotalRisk(Cave cave) {
-		Function<Point, Long> cost = p -> cave.end().x() - p.x() + cave.end().y() - p.y();
-		Point start = new Point(0, 0);
-		return cave.lowestTotalRiskPath(start, cave.end(), cost)
-				.stream()
-				.mapToLong(cave.risk()::get)
-				.sum() - cave.risk().get(start);
+		assertThat(Cave.parse(input).lowestTotalRiskScore()).isEqualTo(540);
 	}
 
 	@Test
 	void partTwoSample() {
-		assertThat(lowestTotalRisk(Cave.parse(SAMPLE).multiply())).isEqualTo(315);
+		assertThat(Cave.parse(SAMPLE).multiply().lowestTotalRiskScore()).isEqualTo(315);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(lowestTotalRisk(Cave.parse(input).multiply())).isEqualTo(2879);
+		assertThat(Cave.parse(input).multiply().lowestTotalRiskScore()).isEqualTo(2879);
 	}
 
 }
@@ -126,19 +117,19 @@ record Cave(Map<Point, Long> risk, Point end) {
 				.collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 	}
 
-	private static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
-		Deque<Point> path = new LinkedList<>();
-		do {
-			path.push(current);
-			current = cameFrom.get(current);
-		} while (current != null);
-		return path;
+	long lowestTotalRiskScore() {
+		Function<Point, Long> cost = p -> end.x() - p.x() + end.y() - p.y();
+		Point start = new Point(0, 0);
+		Collection<Point> path = aStarPath(start, end, cost);
+		return path.stream()
+				.mapToLong(risk::get)
+				.sum() - risk.get(start);
 	}
 
 	/**
 	 * @see https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
 	 */
-	Collection<Point> lowestTotalRiskPath(Point start, Point goal, Function<Point, Long> heuristic) {
+	private Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic) {
 		Set<Point> openSet = new HashSet<>();
 		openSet.add(start);
 
@@ -180,6 +171,15 @@ record Cave(Map<Point, Long> risk, Point end) {
 		}
 
 		throw new IllegalStateException("No route from %s to %s".formatted(start, goal));
+	}
+
+	private static Collection<Point> reconstruct(Map<Point, Point> cameFrom, Point current) {
+		Deque<Point> path = new LinkedList<>();
+		do {
+			path.push(current);
+			current = cameFrom.get(current);
+		} while (current != null);
+		return path;
 	}
 
 }
