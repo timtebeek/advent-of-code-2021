@@ -17,15 +17,25 @@ class DaySeventeenTest {
 
 	@Test
 	void partOneSample() {
-		assertThat(findTrajectoryMaxY(SAMPLE)).isEqualTo(45);
+		assertThat(findTrajectoryMaxY(SAMPLE, true)).isEqualTo(45);
 	}
 
 	@Test
 	void partOneInput() {
-		assertThat(findTrajectoryMaxY(INPUT)).isEqualTo(5886);
+		assertThat(findTrajectoryMaxY(INPUT, true)).isEqualTo(5886);
 	}
 
-	private static int findTrajectoryMaxY(String input) {
+	@Test
+	void partTwoSample() {
+		assertThat(findTrajectoryMaxY(SAMPLE, false)).isEqualTo(112);
+	}
+
+	@Test
+	void partTwoInput() {
+		assertThat(findTrajectoryMaxY(INPUT, false)).isEqualTo(1806);
+	}
+
+	private static int findTrajectoryMaxY(String input, boolean partOne) {
 		Target target = Target.parse(input);
 		List<Integer> maxYs = new ArrayList<>();
 		for (int xVelocity = 1; xVelocity <= target.maxX(); xVelocity++) {
@@ -39,7 +49,10 @@ class DaySeventeenTest {
 				}
 			}
 		}
-		return maxYs.stream().max(Integer::compare).get();
+		if (partOne) {
+			return maxYs.stream().max(Integer::compare).get();
+		}
+		return maxYs.size();
 	}
 
 }
@@ -51,7 +64,7 @@ record Probe(Point position, int xVelocity, int yVelocity) {
 				new Point(
 						position.x() + xVelocity,
 						position.y() + yVelocity),
-				0 < xVelocity ? xVelocity - 1 : 0, /// Unhandled: increase x velocity by one if less than zero
+				0 < xVelocity ? xVelocity - 1 : 0,
 				yVelocity - 1);
 	}
 
@@ -82,7 +95,7 @@ record Target(int minX, int maxX, int minY, int maxY) {
 	}
 
 	boolean overshot(Point p) {
-		return (maxX < p.x() || p.y() < minY);
+		return maxX < p.x() || p.y() < minY;
 	}
 
 }
