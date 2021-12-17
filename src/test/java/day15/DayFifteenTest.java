@@ -158,7 +158,7 @@ record Cave(Map<Point, Long> risk, Point end) {
 		while (!openSet.isEmpty()) {
 			// This operation can occur in O(1) time if openSet is a min-heap or a priority queue
 			// current := the node in openSet having the lowest fScore[] value
-			Point current = openSet.stream().min((a, b) -> Long.compare(gScore.get(a), gScore.get(b))).get();
+			Point current = openSet.stream().min((a, b) -> Long.compare(fScore.get(a), fScore.get(b))).get();
 			if (current.equals(goal)) {
 				return reconstruct(cameFrom, current);
 			}
