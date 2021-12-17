@@ -72,9 +72,30 @@ class DaySixteenTest {
 			10010000010,2
 			00110000011,3
 			""")
-	void parseSubPackets(String bits, int literalValue) {
+	void parseSubPackets(String bits, int value) {
 		Packet packet = Parser.parseFirstPacket(bits, 0);
-		assertThat(packet.value()).isEqualTo(literalValue);
+		assertThat(packet.value()).isEqualTo(value);
+	}
+
+	@ParameterizedTest
+	@CsvSource(textBlock = """
+			C200B40A82,3
+			04005AC33890,54
+			880086C3E88112,7
+			CE00C43D881120,9
+			D8005AC2A8F0,1
+			F600BC2D8F,0
+			9C005AC2F8F0,0
+			9C0141080250320F1802104A08,1
+			""")
+	void evaluate(String bits, int value) {
+		assertThat(Parser.parse(bits).eval()).isEqualTo(value);
+	}
+
+	@ParameterizedTest
+	@CsvFileSource(resources = "input")
+	void partTwoSample(String input) {
+		assertThat(Parser.parse(input).eval()).isEqualTo(1264485568252L);
 	}
 
 }
@@ -168,5 +189,21 @@ class Parser {
 record Packet(int startPosition, int endPosition, int version, int type, long value, List<Packet> subpackets) {
 	Stream<Packet> stream() {
 		return Stream.concat(Stream.of(this), subpackets.stream().flatMap(Packet::stream));
+	}
+
+	long eval() {
+		return switch (type) {
+		case 0 -> subpackets.stream().mapToLong(Packet::eval).sum();// sum
+		case 1 -> subpackets.size() == 1
+				? subpackets.get(0).eval()
+				: subpackets.stream().mapToLong(Packet::eval).reduce((a, b) -> a * b).getAsLong(); // product
+		case 2 -> subpackets.stream().mapToLong(Packet::eval).min().getAsLong();// minimum
+		case 3 -> subpackets.stream().mapToLong(Packet::eval).max().getAsLong();// maximum
+		case 4 -> value; // literal value
+		case 5 -> subpackets.get(0).eval() > subpackets.get(1).eval() ? 1 : 0; // greater than
+		case 6 -> subpackets.get(0).eval() < subpackets.get(1).eval() ? 1 : 0;// less than
+		case 7 -> subpackets.get(0).eval() == subpackets.get(1).eval() ? 1 : 0; // equal to
+		default -> throw new IllegalArgumentException("Unexpected value: " + type);
+		};
 	}
 }
