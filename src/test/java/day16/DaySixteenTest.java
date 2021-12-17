@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -31,7 +33,7 @@ class DaySixteenTest {
 		String bits = Parser.hexToBits("D2FE28");
 		Packet packet = Parser.parseFirstPacket(bits, 0);
 		assertThat(packet.startPosition()).isEqualTo(0);
-		assertThat(packet.endPosition()).isEqualTo(24);
+		assertThat(packet.endPosition()).isEqualTo(21);
 		assertThat(packet.version()).isEqualTo(6);
 		assertThat(packet.type()).isEqualTo(4);
 		assertThat(packet.value()).isEqualTo(2021);
@@ -66,9 +68,10 @@ class DaySixteenTest {
 			01010000001,1
 			10010000010,2
 			00110000011,3
-			""")
-	void parseSubPackets(String packet, int literalValue) {
-		assertThat(Parser.parseFirstPacket(packet, 0).value()).isEqualTo(literalValue);
+						""")
+	void parseSubPackets(String bits, int literalValue) {
+		Packet packet = Parser.parseFirstPacket(bits, 0);
+		assertThat(packet.value()).isEqualTo(literalValue);
 	}
 
 }
@@ -127,38 +130,44 @@ class Parser {
 			sb.append(bits.substring(position + 1, position + 5));
 			position = position + 5;
 
-			// Consume trailing zeroes
-			while (position % 4 != 0) {
-				position++;
-			}
+			// Parse literal value
 			int literalValue = Integer.parseInt(sb.toString(), 2);
-			return new Packet(startPosition, position, packetVersion, packetType, literalValue);
+			return new Packet(startPosition, position, packetVersion, packetType, literalValue, List.of());
 		}
 
 		// Parse operator and sub packets
 		char lengthTypeId = bits.charAt(position);
 		position++;
 
-		// the next 15 bits are a number that represents the total length in bits of the sub-packets contained
+		List<Packet> subpackets = new ArrayList<>();
+
 		if (lengthTypeId == '0') {
+			// the next 15 bits are a number that represents the total length in bits of the sub-packets contained
 			int totalLengthInBits = Integer.parseInt(bits.substring(position, position + 15), 2);
 			position += 15;
-			position += totalLengthInBits;
-			return new Packet(startPosition, position, packetVersion, packetType, -1);
-		}
 
-		// the next 11 bits are a number that represents the number of sub-packets immediately contained
-		int numberOfSubPacketsImmediatelyContained = Integer.parseInt(bits.substring(position, position + 11), 2);
-		position += 11;
-
-		for (int i = 0; i < numberOfSubPacketsImmediatelyContained; i++) {
+			int endPosition = position + totalLengthInBits;
+			while (position < endPosition) {
+				Packet subpacket = parseFirstPacket(bits, position);
+				subpackets.add(subpacket);
+				position = subpacket.endPosition();
+			}
+		} else {
+			// the next 11 bits are a number that represents the number of sub-packets immediately contained
+			int numberOfSubPacketsImmediatelyContained = Integer.parseInt(bits.substring(position, position + 11), 2);
 			position += 11;
+
+			for (int i = 0; i < numberOfSubPacketsImmediatelyContained; i++) {
+				Packet subpacket = parseFirstPacket(bits, position);
+				subpackets.add(subpacket);
+				position = subpacket.endPosition();
+			}
 		}
 
-		return new Packet(startPosition, position, packetVersion, packetType, -1);
+		return new Packet(startPosition, position, packetVersion, packetType, -1, subpackets);
 	}
 
 }
 
-record Packet(int startPosition, int endPosition, int version, int type, int value) {
+record Packet(int startPosition, int endPosition, int version, int type, int value, List<Packet> subpackets) {
 }
