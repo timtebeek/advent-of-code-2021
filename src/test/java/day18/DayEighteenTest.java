@@ -46,100 +46,33 @@ class DayEighteenTest {
 				.magnitude();
 	}
 
-	@ParameterizedTest
-	@CsvSource(textBlock = """
-			[1,2]
-			[[1,2],3]
-			[9,[8,7]]
-			[[1,9],[8,5]]
-			[[[[1,2],[3,4]],[[5,6],[7,8]]],9]
-			[[[9,[3,8]],[[0,9],6]],[[[3,7],[4,9]],3]]
-			[[[[1,3],[5,3]],[[1,3],[8,7]]],[[[4,9],[6,9]],[[8,2],[7,3]]]]
-			""", delimiter = '@')
-	void parserTest(String line) {
-		assertThat(Parser.parse(line, 0).toString()).isEqualTo(line);
+	@Test
+	void partTwoSample() throws Exception {
+		assertThat(largestMagnitudeOfTwoNumbers(SAMPLE)).isEqualTo(3993);
 	}
 
 	@Test
-	void additionTestOne() {
-		String input = """
-				[1,1]
-				[2,2]
-				[3,3]
-				[4,4]
-				""";
-		assertThat(Parser.parse(input)
-				.reduce(Number::add)
-				.map(Number::toString)
-				.get())
-						.isEqualTo("[[[[1,1],[2,2]],[3,3]],[4,4]]");
+	void partTwoInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(largestMagnitudeOfTwoNumbers(input)).isEqualTo(4725);
 	}
 
-	@Test
-	void additionTestTwo() {
-		String input = """
-				[1,1]
-				[2,2]
-				[3,3]
-				[4,4]
-				[5,5]
-				""";
-		assertThat(Parser.parse(input)
-				.reduce(Number::add)
-				.map(Number::toString)
-				.get())
-						.isEqualTo("[[[[3,0],[5,3]],[4,4]],[5,5]]");
-	}
-
-	@Test
-	void additionTestThree() {
-		String input = """
-				[1,1]
-				[2,2]
-				[3,3]
-				[4,4]
-				[5,5]
-				[6,6]
-				""";
-		assertThat(Parser.parse(input)
-				.reduce(Number::add)
-				.map(Number::toString)
-				.get())
-						.isEqualTo("[[[[5,0],[7,4]],[5,5]],[6,6]]");
-	}
-
-	@Test
-	void additionTestFour() {
-		String input = """
-				[[[[4,3],4],4],[7,[[8,4],9]]]
-				[1,1]
-				""";
-		assertThat(Parser.parse(input)
-				.reduce(Number::add)
-				.map(Number::toString)
-				.get())
-						.isEqualTo("[[[[0,7],4],[[7,8],[6,0]]],[8,1]]");
-	}
-
-	@Test
-	void additionTestFive() {
-		String input = """
-				[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]
-				[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]
-				[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]
-				[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]
-				[7,[5,[[3,8],[1,4]]]]
-				[[2,[2,2]],[8,[8,1]]]
-				[2,9]
-				[1,[[[9,3],9],[[9,0],[0,7]]]]
-				[[[5,[7,4]],7],1]
-				[[[[4,2],2],6],[8,7]]
-				""";
-		assertThat(Parser.parse(input)
-				.reduce(Number::add)
-				.map(Number::toString)
-				.get())
-						.isEqualTo("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]");
+	private static long largestMagnitudeOfTwoNumbers(String input) {
+		long max = 0;
+		List<String> numbers = List.of(input.split("\n"));
+		for (String a : numbers) {
+			for (String b : numbers) {
+				if (a.equals(b)) {
+					continue;
+				}
+				// Parse numbers each time, as Number is mutable
+				long magnitude = Parser.parse(a, 0).add(Parser.parse(b, 0)).magnitude();
+				if (max < magnitude) {
+					max = magnitude;
+				}
+			}
+		}
+		return max;
 	}
 
 	@ParameterizedTest
@@ -151,6 +84,7 @@ class DayEighteenTest {
 			[[[[5,0],[7,4]],[5,5]],[6,6]]=1137
 			[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]=3488
 			[[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]]=4140
+			[[[[7,8],[6,6]],[[6,0],[7,7]]],[[[7,8],[8,8]],[[7,9],[0,6]]]]=3993
 			""", delimiter = '=')
 	void magnitudeTest(String line, long magnitude) {
 		assertThat(Parser.parse(line, 0).magnitude()).isEqualByComparingTo(magnitude);
@@ -185,12 +119,12 @@ class Parser {
 }
 
 class Number {
-	Number parent;
+	private Number parent;
 
-	Number left;
-	Number right;
+	private Number left;
+	private Number right;
 
-	Integer value;
+	private Integer value;
 
 	public Number(Number left, Number right) {
 		this.left = left;
@@ -207,7 +141,6 @@ class Number {
 		Number root = new Number(this, added);
 
 		while (true) {
-			System.out.println(root);
 			List<Number> numbersInOrder = root.stream().toList();
 			Optional<Number> firstExploding = numbersInOrder.stream()
 					.filter(Predicate.not(Number::isRegularNumber))
@@ -237,16 +170,13 @@ class Number {
 			}
 			break;
 		}
-
-		System.out.println(root);
-		System.out.println();
 		return root;
 	}
 
 	private static Optional<Number> firstRegularNumberToTheLeft(List<Number> numbersInOrder, Number explodingPair) {
 		int indexOf = numbersInOrder.indexOf(explodingPair.left);
-		for (int i = indexOf - 1; 0 <= i; i--) {
-			Number leaf = numbersInOrder.get(i);
+		while (0 <= --indexOf) {
+			Number leaf = numbersInOrder.get(indexOf);
 			if (leaf.isRegularNumber()) {
 				return Optional.of(leaf);
 			}
@@ -256,8 +186,8 @@ class Number {
 
 	private static Optional<Number> firstRegularNumberToTheRight(List<Number> numbersInOrder, Number explodingPair) {
 		int indexOf = numbersInOrder.indexOf(explodingPair.right);
-		for (int i = indexOf + 1; i <= numbersInOrder.size() - 1; i++) {
-			Number leaf = numbersInOrder.get(i);
+		while (++indexOf < numbersInOrder.size()) {
+			Number leaf = numbersInOrder.get(indexOf);
 			if (leaf.isRegularNumber()) {
 				return Optional.of(leaf);
 			}
@@ -265,15 +195,15 @@ class Number {
 		return Optional.empty();
 	}
 
-	private void replace(Number exploding, Number number) {
-		if (left.equals(exploding)) {
-			left = number;
-		} else if (right.equals(exploding)) {
-			right = number;
+	private void replace(Number replaced, Number with) {
+		with.parent = this;
+		if (left.equals(replaced)) {
+			left = with;
+		} else if (right.equals(replaced)) {
+			right = with;
 		} else {
-			throw new IllegalStateException("Neither left nor right match " + exploding + " in " + this);
+			throw new IllegalStateException("Neither left nor right match " + replaced + " in " + this);
 		}
-		number.parent = this;
 	}
 
 	private int depth() {
