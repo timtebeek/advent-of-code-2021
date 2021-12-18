@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -29,6 +31,12 @@ class DayEighteenTest {
 	@Test
 	void partOneSample() {
 		assertThat(magnitudeOfFinalSum(SAMPLE)).isEqualTo(4140);
+	}
+
+	@Test
+	void partOneInput() throws Exception {
+		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		assertThat(magnitudeOfFinalSum(input)).isEqualTo(4120);
 	}
 
 	static long magnitudeOfFinalSum(String input) {
@@ -199,6 +207,7 @@ class Number {
 		Number root = new Number(this, added);
 
 		while (true) {
+			System.out.println(root);
 			List<Number> numbersInOrder = root.stream().toList();
 			Optional<Number> firstExploding = numbersInOrder.stream()
 					.filter(Predicate.not(Number::isRegularNumber))
@@ -215,7 +224,7 @@ class Number {
 			}
 			Optional<Number> firstSplit = numbersInOrder.stream()
 					.filter(Number::isRegularNumber)
-					.filter(n -> 10 < n.value)
+					.filter(n -> 10 <= n.value)
 					.findFirst();
 			if (firstSplit.isPresent()) {
 				Number splitting = firstSplit.get();
@@ -229,6 +238,8 @@ class Number {
 			break;
 		}
 
+		System.out.println(root);
+		System.out.println();
 		return root;
 	}
 
