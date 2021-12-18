@@ -77,52 +77,44 @@ class Parser {
 			if (line.charAt(position + 1) != ']') { // Close
 				throw new IllegalStateException("Expected end of pair");
 			}
-			return new Pair(left, right);
+			return new Number(left, right);
 		}
-		return new RegularNumber(Character.getNumericValue(charAt)); // Plain value
+		return new Number(Character.getNumericValue(charAt)); // Plain value
 	}
 
 }
 
-sealed interface Number permits Pair,RegularNumber {
-	long value();
+class Number {
+	private Number parent;
 
-	default Number add(Number right) {
-		Pair paired = new Pair(this, right);
-		// TODO reduce
+	private Number left;
+	private Number right;
+
+	private Integer value;
+
+	public Number(Number left, Number right) {
+		this.left = left;
+		this.left.parent = this;
+		this.right = right;
+		this.right.parent = this;
+	}
+
+	public Number(int value) {
+		this.value = value;
+	}
+
+	public Number add(Number right) {
+		Number paired = new Number(this, right);
+		// TODO Reduce
 		return paired;
 	}
 
-	long magnitude();
-}
-
-record Pair(Number left, Number right) implements Number {
-	@Override
-	public long value() {
-		return left.value() + right.value();
-	}
-
-	@Override
 	public long magnitude() {
-		return 3 * left.magnitude() + 2 * right.magnitude();
+		return value != null ? value : 3 * left.magnitude() + 2 * right.magnitude();
 	}
 
 	@Override
 	public String toString() {
-		return "[%s,%s]".formatted(left, right);
+		return value != null ? Long.toString(value) : "[%s,%s]".formatted(left, right);
 	}
-}
-
-record RegularNumber(long value) implements Number {
-
-	@Override
-	public long magnitude() {
-		return value;
-	}
-
-	@Override
-	public String toString() {
-		return Long.toString(value);
-	}
-
 }
