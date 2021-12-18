@@ -5,13 +5,14 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -130,10 +131,8 @@ record Cave(Map<Point, Long> risk, Point end) {
 	/**
 	 * @see https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
 	 */
-	private static Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic, Function<Point, Long> weight) {
-		Set<Point> openSet = new HashSet<>();
-		openSet.add(start);
-
+	private static Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic,
+			Function<Point, Long> weight) {
 		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently
 		// known.
 		Map<Point, Point> cameFrom = new HashMap<>();
@@ -147,14 +146,19 @@ record Cave(Map<Point, Long> risk, Point end) {
 		Map<Point, Long> fScore = new HashMap<>();
 		fScore.put(start, heuristic.apply(start));
 
+		// Nodes to explore, sorted by their fScore
+		SortedSet<Point> openSet = new TreeSet<>(Comparator
+				.comparing((Point p) -> fScore.get(p))
+				.thenComparing(p -> goal.x() - p.x())
+				.thenComparing(p -> goal.y() - p.y()));
+		openSet.add(start);
+
 		while (!openSet.isEmpty()) {
 			// This operation can occur in O(1) time if openSet is a min-heap or a priority queue
 			// current := the node in openSet having the lowest fScore[] value
-			Point current = openSet.stream().min((a, b) -> Long.compare(fScore.get(a), fScore.get(b))).get();
+			Point current = openSet.first();
 			if (current.equals(goal)) {
-				Collection<Point> path = reconstruct(cameFrom, current);
-				printPath(path, goal, gScore, weight);
-				return path;
+				return reconstruct(cameFrom, current);
 			}
 			openSet.remove(current);
 			Long currentGScore = gScore.get(current);
@@ -182,18 +186,6 @@ record Cave(Map<Point, Long> risk, Point end) {
 			current = cameFrom.get(current);
 		} while (current != null);
 		return path;
-	}
-
-	private static void printPath(Collection<Point> path, Point goal, Map<Point, Long> gScore,
-			Function<Point, Long> weight) {
-		for (int y = 0; y <= goal.y(); y++) {
-			for (int x = 0; x < goal.x(); x++) {
-				Point p = new Point(x, y);
-				Long risk = weight.apply(p);
-				System.out.print(path.contains(p) ? "#" : gScore.containsKey(p) ? "." : "" + risk);
-			}
-			System.out.println();
-		}
 	}
 }
 
