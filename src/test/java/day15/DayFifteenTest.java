@@ -120,34 +120,23 @@ record Cave(Map<Point, Long> risk, Point end) {
 
 	long lowestTotalRiskScore() {
 		// h is the heuristic function. h(n) estimates the cost to reach goal from node n.
-		Function<Point, Long> heuristicEstimateToReachGoal = p -> 0L; // Guaranteed shortest path using Dijkstra
 		Point start = new Point(0, 0);
-		Collection<Point> path = aStarPath(start, end, heuristicEstimateToReachGoal, risk::get);
+		Collection<Point> path = dijkstraPath(start, end, risk::get);
 		return path.stream()
 				.mapToLong(risk::get)
 				.sum() - risk.get(start);
 	}
 
-	/**
-	 * @see https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
-	 */
-	private static Collection<Point> aStarPath(Point start, Point goal, Function<Point, Long> heuristic,
-			Function<Point, Long> weight) {
-		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently
-		// known.
+	private static Collection<Point> dijkstraPath(Point start, Point goal, Function<Point, Long> weight) {
+		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently known.
 		Map<Point, Point> cameFrom = new HashMap<>();
 
 		// For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
 		Map<Point, Long> gScore = new HashMap<>();
 		gScore.put(start, 0L);
 
-		// For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
-		// how short a path from start to finish can be if it goes through n.
-		Map<Point, Long> fScore = new HashMap<>();
-		fScore.put(start, heuristic.apply(start));
-
-		// Nodes to explore, sorted by their fScore
-		SortedSet<Point> openSet = new TreeSet<>(comparing((Point p) -> fScore.get(p))
+		// Nodes to explore, sorted by their gScore
+		SortedSet<Point> openSet = new TreeSet<>(comparing((Point p) -> gScore.get(p))
 				// Ensure mutually comparable
 				.thenComparing(Point::x)
 				.thenComparing(Point::y));
@@ -155,7 +144,7 @@ record Cave(Map<Point, Long> risk, Point end) {
 
 		while (!openSet.isEmpty()) {
 			// This operation can occur in O(1) time if openSet is a min-heap or a priority queue
-			// current := the node in openSet having the lowest fScore[] value
+			// current := the node in openSet having the lowest gScore[] value
 			Point current = openSet.first();
 			if (current.equals(goal)) {
 				return reconstruct(cameFrom, current);
@@ -170,7 +159,6 @@ record Cave(Map<Point, Long> risk, Point end) {
 					// This path to neighbor is better than any previous one. Record it!
 					cameFrom.put(neighbor, current);
 					gScore.put(neighbor, tentativeGScore);
-					fScore.put(neighbor, tentativeGScore + heuristic.apply(neighbor));
 					openSet.add(neighbor);
 				}
 			}
