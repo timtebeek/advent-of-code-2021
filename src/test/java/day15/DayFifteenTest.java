@@ -119,7 +119,7 @@ record Cave(Map<Point, Long> risk, Point end) {
 
 	long lowestTotalRiskScore() {
 		// h is the heuristic function. h(n) estimates the cost to reach goal from node n.
-		Function<Point, Long> heuristicEstimateToReachGoal = p -> end.x() - p.x() + end.y() - p.y();
+		Function<Point, Long> heuristicEstimateToReachGoal = p -> 0L; // Guaranteed shortest path using Dijkstra
 		Point start = new Point(0, 0);
 		Collection<Point> path = aStarPath(start, end, heuristicEstimateToReachGoal, risk::get);
 		return path.stream()
@@ -152,21 +152,22 @@ record Cave(Map<Point, Long> risk, Point end) {
 			// current := the node in openSet having the lowest fScore[] value
 			Point current = openSet.stream().min((a, b) -> Long.compare(fScore.get(a), fScore.get(b))).get();
 			if (current.equals(goal)) {
-				return reconstruct(cameFrom, current);
+				Collection<Point> path = reconstruct(cameFrom, current);
+				printPath(path, goal, gScore, weight);
+				return path;
 			}
 			openSet.remove(current);
+			Long currentGScore = gScore.get(current);
 			for (Point neighbor : current.connections(goal)) {
 				// d(current,neighbor) is the weight of the edge from current to neighbor
 				// tentative_gScore is the distance from start to the neighbor through current
-				Long tentativeGScore = gScore.get(current) + weight.apply(neighbor);
+				Long tentativeGScore = currentGScore + weight.apply(neighbor);
 				if (tentativeGScore < gScore.getOrDefault(neighbor, Long.MAX_VALUE)) {
 					// This path to neighbor is better than any previous one. Record it!
 					cameFrom.put(neighbor, current);
 					gScore.put(neighbor, tentativeGScore);
 					fScore.put(neighbor, tentativeGScore + heuristic.apply(neighbor));
-					if (!openSet.contains(neighbor)) {
-						openSet.add(neighbor);
-					}
+					openSet.add(neighbor);
 				}
 			}
 		}
@@ -183,6 +184,17 @@ record Cave(Map<Point, Long> risk, Point end) {
 		return path;
 	}
 
+	private static void printPath(Collection<Point> path, Point goal, Map<Point, Long> gScore,
+			Function<Point, Long> weight) {
+		for (int y = 0; y <= goal.y(); y++) {
+			for (int x = 0; x < goal.x(); x++) {
+				Point p = new Point(x, y);
+				Long risk = weight.apply(p);
+				System.out.print(path.contains(p) ? "#" : gScore.containsKey(p) ? "." : "" + risk);
+			}
+			System.out.println();
+		}
+	}
 }
 
 record Point(long x, long y) {
