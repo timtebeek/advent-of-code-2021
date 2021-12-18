@@ -148,10 +148,8 @@ class Number {
 					.findFirst();
 			if (firstExploding.isPresent()) {
 				Number exploding = firstExploding.get();
-				firstRegularNumberToTheLeft(numbersInOrder, exploding)
-						.ifPresent(n -> n.value = n.value + exploding.left.value);
-				firstRegularNumberToTheRight(numbersInOrder, exploding)
-						.ifPresent(n -> n.value = n.value + exploding.right.value);
+				firstRegularNumber(numbersInOrder, exploding.left, -1).ifPresent(n -> n.value += exploding.left.value);
+				firstRegularNumber(numbersInOrder, exploding.right, 1).ifPresent(n -> n.value += exploding.right.value);
 				exploding.parent.replace(exploding, new Number(0));
 				continue;
 			}
@@ -161,11 +159,10 @@ class Number {
 					.findFirst();
 			if (firstSplit.isPresent()) {
 				Number splitting = firstSplit.get();
-				Number pair = new Number(
-						new Number(splitting.value / 2),
-						new Number((splitting.value + 1) / 2));
 				// Set parent here for regular numbers
-				splitting.parent.replace(splitting, pair);
+				splitting.parent.replace(splitting, new Number(
+						new Number(splitting.value / 2),
+						new Number((splitting.value + 1) / 2)));
 				continue;
 			}
 			break;
@@ -173,20 +170,9 @@ class Number {
 		return root;
 	}
 
-	private static Optional<Number> firstRegularNumberToTheLeft(List<Number> numbersInOrder, Number explodingPair) {
-		int indexOf = numbersInOrder.indexOf(explodingPair.left);
-		while (0 <= --indexOf) {
-			Number leaf = numbersInOrder.get(indexOf);
-			if (leaf.isRegularNumber()) {
-				return Optional.of(leaf);
-			}
-		}
-		return Optional.empty();
-	}
-
-	private static Optional<Number> firstRegularNumberToTheRight(List<Number> numbersInOrder, Number explodingPair) {
-		int indexOf = numbersInOrder.indexOf(explodingPair.right);
-		while (++indexOf < numbersInOrder.size()) {
+	private static Optional<Number> firstRegularNumber(List<Number> numbersInOrder, Number from, int step) {
+		int indexOf = numbersInOrder.indexOf(from);
+		while (0 <= (indexOf += step) && indexOf < numbersInOrder.size()) {
 			Number leaf = numbersInOrder.get(indexOf);
 			if (leaf.isRegularNumber()) {
 				return Optional.of(leaf);
