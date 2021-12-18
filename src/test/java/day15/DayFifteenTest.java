@@ -119,16 +119,16 @@ record Cave(Map<Point, Long> risk, Point end) {
 	}
 
 	long lowestTotalRiskScore() {
-		// h is the heuristic function. h(n) estimates the cost to reach goal from node n.
 		Point start = new Point(0, 0);
-		Collection<Point> path = dijkstraPath(start, end, risk::get);
-		return path.stream()
-				.mapToLong(risk::get)
-				.sum() - risk.get(start);
+		return Algo.dijkstraPath(start, end, risk::get).stream()
+				.mapToLong(risk::get).sum() - risk.get(start);
 	}
+}
 
-	private static Collection<Point> dijkstraPath(Point start, Point goal, Function<Point, Long> weight) {
-		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently known.
+class Algo {
+	static Collection<Point> dijkstraPath(Point start, Point goal, Function<Point, Long> weight) {
+		// For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently
+		// known.
 		Map<Point, Point> cameFrom = new HashMap<>();
 
 		// For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
