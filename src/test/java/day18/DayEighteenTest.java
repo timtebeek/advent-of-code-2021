@@ -107,11 +107,8 @@ class Number {
 
 	public Number add(Number added) {
 		Number root = new Number(this, added);
-		while (true) {
-			List<Number> numbersInOrder = root.stream().toList();
-			if (!explode(numbersInOrder) && !split(numbersInOrder)) {
-				break;
-			}
+		while (explode(root.stream().toList()) || split(root.stream().toList())) {
+			// Explode & split until done
 		}
 		return root;
 	}
@@ -119,9 +116,9 @@ class Number {
 	private static boolean explode(List<Number> numbersInOrder) {
 		return numbersInOrder.stream()
 				.filter(t -> !t.isRegularNumber()
-						&& 5 == Stream.iterate(t, n1 -> n1.parent).takeWhile(Objects::nonNull).count())
+						&& 5 == Stream.iterate(t, n -> n.parent).takeWhile(Objects::nonNull).count())
 				.findFirst()
-				.map(exploding -> {
+				.map(exploding -> { // Add value to first regular number left and right, and replace with zero
 					firstRegularNumber(numbersInOrder, exploding.left, true)
 							.ifPresent(n -> n.value += exploding.left.value);
 					firstRegularNumber(numbersInOrder, exploding.right, false)
@@ -171,11 +168,7 @@ class Number {
 	private Stream<Number> stream() {
 		return isRegularNumber()
 				? Stream.of(this)
-				: Stream.concat(
-						left.stream(),
-						Stream.concat(
-								Stream.of(this),
-								right.stream()));
+				: Stream.concat(left.stream(), Stream.concat(Stream.of(this), right.stream()));
 	}
 
 	public long magnitude() {
