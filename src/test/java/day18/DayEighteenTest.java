@@ -4,11 +4,13 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static java.util.Collections.reverse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayEighteenTest {
@@ -120,24 +122,24 @@ class Number {
 						&& 5 == Stream.iterate(t, n1 -> n1.parent).takeWhile(Objects::nonNull).count())
 				.findFirst()
 				.map(exploding -> {
-					firstRegularNumber(numbersInOrder, exploding.left, -1)
+					firstRegularNumber(numbersInOrder, exploding.left, true)
 							.ifPresent(n -> n.value += exploding.left.value);
-					firstRegularNumber(numbersInOrder, exploding.right, 1)
+					firstRegularNumber(numbersInOrder, exploding.right, false)
 							.ifPresent(n -> n.value += exploding.right.value);
 					return exploding.parent.replace(exploding, new Number(0));
 				})
 				.isPresent();
 	}
 
-	private static Optional<Number> firstRegularNumber(List<Number> numbersInOrder, Number from, int step) {
-		int indexOf = numbersInOrder.indexOf(from);
-		while (0 <= (indexOf += step) && indexOf < numbersInOrder.size()) {
-			Number leaf = numbersInOrder.get(indexOf);
-			if (leaf.isRegularNumber()) {
-				return Optional.of(leaf);
-			}
+	private static Optional<Number> firstRegularNumber(List<Number> numbersInOrder, Number from, boolean reverse) {
+		List<Number> numbers = new ArrayList<>(numbersInOrder);
+		if (reverse) {
+			reverse(numbers);
 		}
-		return Optional.empty();
+		return numbers.stream()
+				.skip(numbers.indexOf(from) + 1)
+				.filter(Number::isRegularNumber)
+				.findFirst();
 	}
 
 	private static boolean split(List<Number> numbersInOrder) {
