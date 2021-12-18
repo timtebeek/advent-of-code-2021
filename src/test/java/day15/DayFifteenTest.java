@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,6 +15,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -147,10 +147,10 @@ record Cave(Map<Point, Long> risk, Point end) {
 		fScore.put(start, heuristic.apply(start));
 
 		// Nodes to explore, sorted by their fScore
-		SortedSet<Point> openSet = new TreeSet<>(Comparator
-				.comparing((Point p) -> fScore.get(p))
-				.thenComparing(p -> goal.x() - p.x())
-				.thenComparing(p -> goal.y() - p.y()));
+		SortedSet<Point> openSet = new TreeSet<>(comparing((Point p) -> fScore.get(p))
+				// Ensure mutually comparable
+				.thenComparing(Point::x)
+				.thenComparing(Point::y));
 		openSet.add(start);
 
 		while (!openSet.isEmpty()) {
