@@ -58,21 +58,14 @@ class DayEighteenTest {
 	}
 
 	private static long largestMagnitudeOfTwoNumbers(String input) {
-		long max = 0;
-		List<String> numbers = List.of(input.split("\n"));
-		for (String a : numbers) {
-			for (String b : numbers) {
-				if (a.equals(b)) {
-					continue;
-				}
-				// Parse numbers each time, as Number is mutable
-				long magnitude = Parser.parse(a, 0).add(Parser.parse(b, 0)).magnitude();
-				if (max < magnitude) {
-					max = magnitude;
-				}
-			}
-		}
-		return max;
+		return Stream.of(input.split("\n"))
+				.mapToLong(a -> Stream.of(input.split("\n"))
+						// Parse numbers each time, as Number is mutable
+						.mapToLong(b -> Parser.parse(a, 0)
+								.add(Parser.parse(b, 0))
+								.magnitude())
+						.max().getAsLong())
+				.max().getAsLong();
 	}
 
 	@ParameterizedTest
