@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,10 +108,7 @@ class Number {
 
 		while (true) {
 			List<Number> numbersInOrder = root.stream().toList();
-			Optional<Number> firstExploding = numbersInOrder.stream()
-					.filter(Predicate.not(Number::isRegularNumber))
-					.filter(n -> n.depth() == 5)
-					.findFirst();
+			Optional<Number> firstExploding = numbersInOrder.stream().filter(Number::shouldExplode).findFirst();
 			if (firstExploding.isPresent()) {
 				Number exploding = firstExploding.get();
 				firstRegularNumber(numbersInOrder, exploding.left, -1).ifPresent(n -> n.value += exploding.left.value);
@@ -119,10 +116,7 @@ class Number {
 				exploding.parent.replace(exploding, new Number(0));
 				continue;
 			}
-			Optional<Number> firstSplit = numbersInOrder.stream()
-					.filter(Number::isRegularNumber)
-					.filter(n -> 10 <= n.value)
-					.findFirst();
+			Optional<Number> firstSplit = numbersInOrder.stream().filter(Number::shouldSplit).findFirst();
 			if (firstSplit.isPresent()) {
 				Number splitting = firstSplit.get();
 				// Set parent here for regular numbers
@@ -158,14 +152,12 @@ class Number {
 		}
 	}
 
-	private int depth() {
-		int depth = 1;
-		Number current = this;
-		while (current.parent != null) {
-			current = current.parent;
-			depth++;
-		}
-		return depth;
+	private boolean shouldExplode() {
+		return !isRegularNumber() && 5 == Stream.iterate(this, n -> n.parent).takeWhile(Objects::nonNull).count();
+	}
+
+	private boolean shouldSplit() {
+		return isRegularNumber() && 10 <= value;
 	}
 
 	private boolean isRegularNumber() {
