@@ -105,29 +105,28 @@ class Number {
 
 	public Number add(Number added) {
 		Number root = new Number(this, added);
-
 		while (true) {
 			List<Number> numbersInOrder = root.stream().toList();
-			Optional<Number> firstExploding = numbersInOrder.stream().filter(Number::shouldExplode).findFirst();
-			if (firstExploding.isPresent()) {
-				Number exploding = firstExploding.get();
-				firstRegularNumber(numbersInOrder, exploding.left, -1).ifPresent(n -> n.value += exploding.left.value);
-				firstRegularNumber(numbersInOrder, exploding.right, 1).ifPresent(n -> n.value += exploding.right.value);
-				exploding.parent.replace(exploding, new Number(0));
-				continue;
+			if (!explode(numbersInOrder) && !split(numbersInOrder)) {
+				break;
 			}
-			Optional<Number> firstSplit = numbersInOrder.stream().filter(Number::shouldSplit).findFirst();
-			if (firstSplit.isPresent()) {
-				Number splitting = firstSplit.get();
-				// Set parent here for regular numbers
-				splitting.parent.replace(splitting, new Number(
-						new Number(splitting.value / 2),
-						new Number((splitting.value + 1) / 2)));
-				continue;
-			}
-			break;
 		}
 		return root;
+	}
+
+	private static boolean explode(List<Number> numbersInOrder) {
+		return numbersInOrder.stream()
+				.filter(t -> !t.isRegularNumber()
+						&& 5 == Stream.iterate(t, n1 -> n1.parent).takeWhile(Objects::nonNull).count())
+				.findFirst()
+				.map(exploding -> {
+					firstRegularNumber(numbersInOrder, exploding.left, -1)
+							.ifPresent(n -> n.value += exploding.left.value);
+					firstRegularNumber(numbersInOrder, exploding.right, 1)
+							.ifPresent(n -> n.value += exploding.right.value);
+					return exploding.parent.replace(exploding, new Number(0));
+				})
+				.isPresent();
 	}
 
 	private static Optional<Number> firstRegularNumber(List<Number> numbersInOrder, Number from, int step) {
@@ -141,7 +140,17 @@ class Number {
 		return Optional.empty();
 	}
 
-	private void replace(Number replaced, Number with) {
+	private static boolean split(List<Number> numbersInOrder) {
+		return numbersInOrder.stream()
+				.filter(t -> t.isRegularNumber() && 10 <= t.value)
+				.findFirst()
+				.map(splitting -> splitting.parent.replace(splitting, new Number(
+						new Number(splitting.value / 2),
+						new Number((splitting.value + 1) / 2))))
+				.isPresent();
+	}
+
+	private Number replace(Number replaced, Number with) {
 		with.parent = this;
 		if (left.equals(replaced)) {
 			left = with;
@@ -150,14 +159,7 @@ class Number {
 		} else {
 			throw new IllegalStateException("Neither left nor right match " + replaced + " in " + this);
 		}
-	}
-
-	private boolean shouldExplode() {
-		return !isRegularNumber() && 5 == Stream.iterate(this, n -> n.parent).takeWhile(Objects::nonNull).count();
-	}
-
-	private boolean shouldSplit() {
-		return isRegularNumber() && 10 <= value;
+		return with;
 	}
 
 	private boolean isRegularNumber() {
