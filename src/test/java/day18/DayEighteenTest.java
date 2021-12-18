@@ -40,7 +40,8 @@ class DayEighteenTest {
 	}
 
 	static long magnitudeOfFinalSum(String input) {
-		return Parser.parse(input)
+		return Stream.of(input.split("\n"))
+				.map(line -> Parser.parseFirstNumber(line, 0))
 				.reduce(Number::add)
 				.get()
 				.magnitude();
@@ -61,8 +62,8 @@ class DayEighteenTest {
 		return Stream.of(input.split("\n"))
 				.mapToLong(a -> Stream.of(input.split("\n"))
 						// Parse numbers each time, as Number is mutable
-						.mapToLong(b -> Parser.parse(a, 0)
-								.add(Parser.parse(b, 0))
+						.mapToLong(b -> Parser.parseFirstNumber(a, 0)
+								.add(Parser.parseFirstNumber(b, 0))
 								.magnitude())
 						.max().getAsLong())
 				.max().getAsLong();
@@ -80,31 +81,18 @@ class DayEighteenTest {
 			[[[[7,8],[6,6]],[[6,0],[7,7]]],[[[7,8],[8,8]],[[7,9],[0,6]]]]=3993
 			""", delimiter = '=')
 	void magnitudeTest(String line, long magnitude) {
-		assertThat(Parser.parse(line, 0).magnitude()).isEqualByComparingTo(magnitude);
+		assertThat(Parser.parseFirstNumber(line, 0).magnitude()).isEqualByComparingTo(magnitude);
 	}
 }
 
 class Parser {
 
-	public static Stream<Number> parse(String input) {
-		return Stream.of(input.split("\n"))
-				.map(line -> parse(line, 0));
-	}
-
-	static Number parse(String line, int position) {
+	static Number parseFirstNumber(String line, int position) {
 		char charAt = line.charAt(position);
-		if (charAt == '[') { // Open
-			Number left = parse(line, position + 1); // Left
-			position += left.toString().length();
-			if (line.charAt(position + 1) != ',') { // Comma
-				throw new IllegalStateException("Expected comma'");
-			}
-			Number right = parse(line, position + 2); // Right
-			position += 1 + right.toString().length();
-			if (line.charAt(position + 1) != ']') { // Close
-				throw new IllegalStateException("Expected end of pair");
-			}
-			return new Number(left, right);
+		if (charAt == '[') {
+			Number left = parseFirstNumber(line, position + 1);
+			return new Number(left,
+					parseFirstNumber(line, position + left.toString().length() + 2));
 		}
 		return new Number(Character.getNumericValue(charAt)); // Plain value
 	}
