@@ -24,19 +24,16 @@ class DayNineteenTest {
 	void partOneSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
 		String beacons = Files.readString(Paths.get(getClass().getResource("beacons").toURI()));
-		assertThat(countDistinctBeaconsInFullMap(sample).map(Position::toString).collect(joining("\n")))
+		List<Scanner> scanners = Parser.parse(sample);
+		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners).map(Position::toString).collect(joining("\n")))
 				.isEqualTo(beacons);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(countDistinctBeaconsInFullMap(input).count()).isEqualTo(408);
-	}
-
-	private static Stream<Position> countDistinctBeaconsInFullMap(String input) {
 		List<Scanner> scanners = Parser.parse(input);
-		return Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners);
+		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners).count()).isEqualTo(408);
 	}
 
 	@Test
@@ -52,7 +49,8 @@ class DayNineteenTest {
 	void overlappingTest() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
-		String overlapping = Mapper.overlappingScannerPairs(scanners).map(ScannerPair::toString).collect(joining(", "));
+		String overlapping = scanners.stream().flatMap(left -> Mapper.overlappingScannerPairs(left, scanners))
+				.map(ScannerPair::toString).collect(joining(", "));
 		assertThat(overlapping).isEqualTo("0-1, 0-4, 1-2, 1-3, 1-4, 2-4, 3-4");
 	}
 
@@ -97,11 +95,6 @@ class Mapper {
 			}
 		}
 		return map.beacons().stream().distinct().sorted();
-	}
-
-	@Deprecated
-	static Stream<ScannerPair> overlappingScannerPairs(List<Scanner> scanners) {
-		return scanners.stream().flatMap(left -> overlappingScannerPairs(left, scanners));
 	}
 
 	static Stream<ScannerPair> overlappingScannerPairs(Scanner left, List<Scanner> scanners) {
