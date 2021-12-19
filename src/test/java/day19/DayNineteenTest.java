@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,18 +23,15 @@ class DayNineteenTest {
 	@Test
 	void partOneSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
-		String beacons = Files.readString(Paths.get(getClass().getResource("beacons").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
-		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners)
-				.map(Position::toString).collect(joining("\n")))
-						.isEqualTo(beacons);
+		assertThat(Mapper.assembleAndAnswer(scanners, false)).isEqualTo(79);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String input = Files.readString(Paths.get(getClass().getResource("input").toURI()));
 		List<Scanner> scanners = Parser.parse(input);
-		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners).count()).isEqualTo(408);
+		assertThat(Mapper.assembleAndAnswer(scanners, false)).isEqualTo(408);
 	}
 
 	@Test
@@ -68,14 +64,14 @@ class DayNineteenTest {
 	void partTwoSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
-		assertThat(Mapper.largestManhattanDistanceBetweenAnyTwoScannersTest(scanners)).isEqualTo(3621);
+		assertThat(Mapper.assembleAndAnswer(scanners, true)).isEqualTo(3621);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
-		assertThat(Mapper.largestManhattanDistanceBetweenAnyTwoScannersTest(scanners)).isEqualTo(13348);
+		assertThat(Mapper.assembleAndAnswer(scanners, true)).isEqualTo(13348);
 	}
 
 }
@@ -101,24 +97,10 @@ class Parser {
 
 class Mapper {
 
-	public static Stream<Position> assembleUniqueBeaconsRelativeToFirstScanner(List<Scanner> scanners) {
-		List<Scanner> scannersToAddToMap = scanners.stream().skip(1).collect(toList()); // Mutable list
+	public static int assembleAndAnswer(List<Scanner> scanners, boolean partTwo) {
+		List<Scanner> scannersToAddToMap = new ArrayList<>(scanners.subList(1, scanners.size())); // Mutable list
+		List<Position> scannerPositions = new ArrayList<>(List.of(new Position(0, 0, 0)));
 		Scanner map = new Scanner(-1, new HashSet<>(scanners.get(0).beacons()));
-		while (!scannersToAddToMap.isEmpty()) {
-			for (ScannerPair scannerPair : overlappingScannerPairs(map, scannersToAddToMap).toList()) {
-				map.beacons().addAll(scannerPair.rightBeaconsViewedFromLeft().toList());
-				scannersToAddToMap.removeIf(scanner -> scanner.id() == scannerPair.right().id());
-			}
-		}
-		return map.beacons().stream().sorted();
-	}
-
-	public static int largestManhattanDistanceBetweenAnyTwoScannersTest(List<Scanner> scanners) {
-		List<Scanner> scannersToAddToMap = scanners.stream().skip(1).collect(toList()); // Mutable list
-		List<Position> scannerPositions = new ArrayList<>();
-		Scanner scannerZero = scanners.get(0);
-		scannerPositions.add(new Position(0,0,0));
-		Scanner map = new Scanner(-1, new HashSet<>(scannerZero.beacons()));
 		while (!scannersToAddToMap.isEmpty()) {
 			for (ScannerPair scannerPair : overlappingScannerPairs(map, scannersToAddToMap).toList()) {
 				map.beacons().addAll(scannerPair.rightBeaconsViewedFromLeft().toList());
@@ -126,13 +108,17 @@ class Mapper {
 				scannerPositions.add(scannerPair.rightScannerPosition());
 			}
 		}
+		return partTwo ? largestManhattenDistanceBetweenScanners(scannerPositions) : map.beacons().size();
+	}
+
+	private static int largestManhattenDistanceBetweenScanners(List<Position> scannerPositions) {
 		return scannerPositions.stream()
 				.flatMap(left -> scannerPositions.stream()
 						.filter(right -> left.compareTo(right) < 0)
 						.map(right -> new PositionPair(left, right)))
-				.mapToInt(pair -> pair.distance().manhattanDistance())
+				.mapToInt(pair -> pair.distance().manhattan())
 				.max()
-				.getAsInt()				;
+				.getAsInt();
 	}
 
 	static Stream<ScannerPair> overlappingScannerPairs(Scanner left, List<Scanner> scanners) {
@@ -236,7 +222,7 @@ record PositionPair(Position left, Position right) {
 
 record Position(int x, int y, int z) implements Comparable<Position> {
 
-	public int manhattanDistance() {
+	public int manhattan() {
 		return Math.abs(x) + Math.abs(y) + Math.abs(z);
 	}
 
