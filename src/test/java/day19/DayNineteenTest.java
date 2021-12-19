@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +26,9 @@ class DayNineteenTest {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
 		String beacons = Files.readString(Paths.get(getClass().getResource("beacons").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
-		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners).map(Position::toString).collect(joining("\n")))
-				.isEqualTo(beacons);
+		assertThat(Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners)
+				.map(Position::toString).collect(joining("\n")))
+						.isEqualTo(beacons);
 	}
 
 	@Test
@@ -55,11 +57,25 @@ class DayNineteenTest {
 	}
 
 	@Test
-	void rightScannerPosition() throws Exception {
+	void rightScannerPositionTest() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
 		List<Scanner> scanners = Parser.parse(sample);
 		ScannerPair scannerPair = Mapper.overlappingScannerPairs(scanners.get(0), scanners).findFirst().get();
 		assertThat(scannerPair.rightScannerPosition()).isEqualByComparingTo(new Position(68, -1246, -43));
+	}
+
+	@Test
+	void partTwoSample() throws Exception {
+		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
+		List<Scanner> scanners = Parser.parse(sample);
+		assertThat(Mapper.largestManhattanDistanceBetweenAnyTwoScannersTest(scanners)).isEqualTo(3621);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		List<Scanner> scanners = Parser.parse(sample);
+		assertThat(Mapper.largestManhattanDistanceBetweenAnyTwoScannersTest(scanners)).isEqualTo(13348);
 	}
 
 }
@@ -90,11 +106,33 @@ class Mapper {
 		Scanner map = new Scanner(-1, new HashSet<>(scanners.get(0).beacons()));
 		while (!scannersToAddToMap.isEmpty()) {
 			for (ScannerPair scannerPair : overlappingScannerPairs(map, scannersToAddToMap).toList()) {
-				map.beacons().addAll(scannerPair.beaconsViewedFromLeft().toList());
+				map.beacons().addAll(scannerPair.rightBeaconsViewedFromLeft().toList());
 				scannersToAddToMap.removeIf(scanner -> scanner.id() == scannerPair.right().id());
 			}
 		}
-		return map.beacons().stream().distinct().sorted();
+		return map.beacons().stream().sorted();
+	}
+
+	public static int largestManhattanDistanceBetweenAnyTwoScannersTest(List<Scanner> scanners) {
+		List<Scanner> scannersToAddToMap = scanners.stream().skip(1).collect(toList()); // Mutable list
+		List<Position> scannerPositions = new ArrayList<>();
+		Scanner scannerZero = scanners.get(0);
+		scannerPositions.add(new Position(0,0,0));
+		Scanner map = new Scanner(-1, new HashSet<>(scannerZero.beacons()));
+		while (!scannersToAddToMap.isEmpty()) {
+			for (ScannerPair scannerPair : overlappingScannerPairs(map, scannersToAddToMap).toList()) {
+				map.beacons().addAll(scannerPair.rightBeaconsViewedFromLeft().toList());
+				scannersToAddToMap.removeIf(scanner -> scanner.id() == scannerPair.right().id());
+				scannerPositions.add(scannerPair.rightScannerPosition());
+			}
+		}
+		return scannerPositions.stream()
+				.flatMap(left -> scannerPositions.stream()
+						.filter(right -> left.compareTo(right) < 0)
+						.map(right -> new PositionPair(left, right)))
+				.mapToInt(pair -> pair.distance().manhattanDistance())
+				.max()
+				.getAsInt()				;
 	}
 
 	static Stream<ScannerPair> overlappingScannerPairs(Scanner left, List<Scanner> scanners) {
@@ -130,14 +168,13 @@ record ScannerPair(Scanner left, Scanner right) {
 				firstLeft.z() - firstRight.z());
 	}
 
-	Stream<Position> beaconsViewedFromLeft() {
+	Stream<Position> rightBeaconsViewedFromLeft() {
 		Position delta = rightScannerPosition();
-		Stream<Position> rightAdjusted = right.beacons().stream()
+		return right.beacons().stream()
 				.map(p -> new Position(
 						p.x() + delta.x(),
 						p.y() + delta.y(),
 						p.z() + delta.z()));
-		return Stream.concat(left.beacons().stream(), rightAdjusted).distinct().sorted();
 	}
 
 	@Override
@@ -198,6 +235,10 @@ record PositionPair(Position left, Position right) {
 }
 
 record Position(int x, int y, int z) implements Comparable<Position> {
+
+	public int manhattanDistance() {
+		return Math.abs(x) + Math.abs(y) + Math.abs(z);
+	}
 
 	@Override
 	public String toString() {
