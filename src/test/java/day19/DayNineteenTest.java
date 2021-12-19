@@ -57,6 +57,14 @@ class DayNineteenTest {
 		assertThat(overlapping).isEqualTo("0-1, 0-4, 1-2, 1-3, 1-4, 2-4, 3-4");
 	}
 
+	@Test
+	void rightScannerPosition() throws Exception {
+		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
+		List<Scanner> scanners = Parser.parse(sample);
+		ScannerPair scannerPair = Mapper.overlappingScannerPairs(scanners).findFirst().get();
+		assertThat(scannerPair.rightScannerPosition()).isEqualByComparingTo(new Position(68, -1246, -43));
+	}
+
 }
 
 class Parser {
@@ -85,9 +93,11 @@ class Mapper {
 		Map<Integer, List<ScannerPair>> grouped = overlapping.collect(Collectors.groupingBy(pair -> pair.left().id()));
 
 		Scanner map = new Scanner(-1, new ArrayList<>());
+
 		map.beacons().addAll(grouped.get(0).stream()
 				.flatMap(ScannerPair::beaconsViewedFromLeft)
 				.toList());
+		// TODO overlay all scanners onto the first
 
 //		List<ScannerPair> overlappingScannerPairs = overlapping.toList();
 //		for (ScannerPair pair : overlappingScannerPairs) {
@@ -123,26 +133,33 @@ record ScannerPair(Scanner left, Scanner right) {
 		return 12 < intersection.size();
 	}
 
-	Stream<Position> beaconsViewedFromLeft() {
-		// overlap established these scanners contains more than twelve overlapping distances between pairs of beacons
+	Position rightScannerPosition() {
 		Map<Position, PositionPair> leftDistancePairs = left.distancePairs();
-		Map<Position, PositionPair> rightDistancePairs = left.distancePairs();
-		Position delta = rightDistancePairs.entrySet().stream()
+		Map<Position, PositionPair> rightDistancePairs = right.distancePairs();
+		Map.Entry<Position, PositionPair> firstRightEntry = rightDistancePairs.entrySet().stream()
 				.filter(entry -> leftDistancePairs.containsKey(entry.getKey()))
 				.findFirst()
-				.map(entry -> new PositionPair(
-						leftDistancePairs.get(entry.getKey()).left(),
-						entry.getValue().left()))
-				.map(PositionPair::distance)
 				.get();
+		Position firstLeft = leftDistancePairs.get(firstRightEntry.getKey()).left();
+		Position firstRight = firstRightEntry.getValue().left();
+		return new Position(
+				firstLeft.x() - firstRight.x(),
+				firstLeft.y() - firstRight.y(),
+				firstLeft.z() - firstRight.z());
+	}
 
-		// TODO This is incorrect
-		Stream<Position> rightAdjusted = right.beacons().stream().map(p -> new Position(
-				p.x() - delta.x(),
-				p.y() - delta.y(),
-				p.z() - delta.z()));
-
-		return Stream.concat(left.beacons().stream(), rightAdjusted).distinct().sorted();
+	Stream<Position> beaconsViewedFromLeft() {
+		Position delta = rightScannerPosition();
+		Stream<Position> rightAdjusted = right.beacons().stream()
+				.map(p -> new Position(
+						p.x() + delta.x(),
+						p.y() + delta.y(),
+						p.z() + delta.z()));
+		return Stream.concat(
+				left.beacons().stream(),
+				rightAdjusted)
+				.distinct()
+				.sorted();
 	}
 
 	@Override
