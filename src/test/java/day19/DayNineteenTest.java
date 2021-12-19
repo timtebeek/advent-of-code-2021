@@ -4,12 +4,17 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,10 +23,12 @@ class DayNineteenTest {
 	@Test
 	void partOneSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
-		assertThat(countDistinctBeaconsInFullMap(sample).size()).isEqualTo(79);
+		String beacons = Files.readString(Paths.get(getClass().getResource("beacons").toURI()));
+		assertThat(countDistinctBeaconsInFullMap(sample).map(Position::toString).collect(joining("\n")))
+				.isEqualTo(beacons);
 	}
 
-	private static List<Position> countDistinctBeaconsInFullMap(String input) {
+	private static Stream<Position> countDistinctBeaconsInFullMap(String input) {
 		List<Scanner> scanners = Parser.parse(input);
 		return Mapper.assembleUniqueBeaconsRelativeToFirstScanner(scanners);
 	}
@@ -73,19 +80,35 @@ class Parser {
 
 class Mapper {
 
-	public static List<Position> assembleUniqueBeaconsRelativeToFirstScanner(List<Scanner> scanners) {
-		Scanner zero = scanners.get(0);
+	public static Stream<Position> assembleUniqueBeaconsRelativeToFirstScanner(List<Scanner> scanners) {
+		Stream<ScannerPair> overlapping = overlappingScannerPairs(scanners);
+		Map<Integer, List<ScannerPair>> grouped = overlapping.collect(Collectors.groupingBy(pair -> pair.left().id()));
 
-		Stream<ScannerPair> overlappingScannerPairs = overlappingScannerPairs(scanners);
+		Scanner map = new Scanner(-1, new ArrayList<>());
+		map.beacons().addAll(grouped.get(0).stream()
+				.flatMap(ScannerPair::beaconsViewedFromLeft)
+				.toList());
 
-		return List.of();// TODO
+//		List<ScannerPair> overlappingScannerPairs = overlapping.toList();
+//		for (ScannerPair pair : overlappingScannerPairs) {
+//			map.beacons().addAll(
+//					overlappingScannerPairs(map, List.of(pair.left(), pair.right()))
+//							.map(ScannerPair::right)
+//							.map(Scanner::beacons)
+//							.flatMap(List::stream)
+//							.toList());
+//		}
+		return map.beacons().stream().distinct().sorted();
 	}
 
 	static Stream<ScannerPair> overlappingScannerPairs(List<Scanner> scanners) {
+		return scanners.stream().flatMap(left -> overlappingScannerPairs(left, scanners));
+	}
+
+	private static Stream<ScannerPair> overlappingScannerPairs(Scanner left, List<Scanner> scanners) {
 		return scanners.stream()
-				.flatMap(left -> scanners.stream()
-						.flatMap(right -> right.orientations().stream())
-						.map(orientation -> new ScannerPair(left, orientation)))
+				.flatMap(right -> right.orientations().stream())
+				.map(orientation -> new ScannerPair(left, orientation))
 				.filter(pair -> pair.left().id() < pair.right().id())
 				.filter(ScannerPair::overlap);
 	}
@@ -95,9 +118,31 @@ class Mapper {
 record ScannerPair(Scanner left, Scanner right) {
 
 	boolean overlap() {
-		Set<Position> intersection = left.distancePairs();
-		intersection.retainAll(right.distancePairs());
+		Set<Position> intersection = left.distancePairs().keySet();
+		intersection.retainAll(right.distancePairs().keySet());
 		return 12 < intersection.size();
+	}
+
+	Stream<Position> beaconsViewedFromLeft() {
+		// overlap established these scanners contains more than twelve overlapping distances between pairs of beacons
+		Map<Position, PositionPair> leftDistancePairs = left.distancePairs();
+		Map<Position, PositionPair> rightDistancePairs = left.distancePairs();
+		Position delta = rightDistancePairs.entrySet().stream()
+				.filter(entry -> leftDistancePairs.containsKey(entry.getKey()))
+				.findFirst()
+				.map(entry -> new PositionPair(
+						leftDistancePairs.get(entry.getKey()).left(),
+						entry.getValue().left()))
+				.map(PositionPair::distance)
+				.get();
+
+		// TODO This is incorrect
+		Stream<Position> rightAdjusted = right.beacons().stream().map(p -> new Position(
+				p.x() - delta.x(),
+				p.y() - delta.y(),
+				p.z() - delta.z()));
+
+		return Stream.concat(left.beacons().stream(), rightAdjusted).distinct().sorted();
 	}
 
 	@Override
@@ -128,13 +173,12 @@ record Scanner(int id, List<Position> beacons) {
 		return new Scanner(id, beacons.stream().map(p -> new Position(p.x(), -p.y(), -p.z())).toList());
 	}
 
-	public Set<Position> distancePairs() {
+	public Map<Position, PositionPair> distancePairs() {
 		return beacons.stream()
 				.flatMap(left -> beacons.stream()
 						.filter(right -> left.compareTo(right) < 0)
 						.map(right -> new PositionPair(left, right)))
-				.map(PositionPair::distance)
-				.collect(toSet());
+				.collect(toMap(PositionPair::distance, Function.identity()));
 	}
 
 	@Override
@@ -151,9 +195,9 @@ record PositionPair(Position left, Position right) {
 
 	Position distance() {
 		return new Position(
-				left.x() - right.x(),
-				left.y() - right.y(),
-				left.z() - right.z());
+				right.x() - left.x(),
+				right.y() - left.y(),
+				right.z() - left.z());
 	}
 
 }
