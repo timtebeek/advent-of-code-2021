@@ -14,7 +14,7 @@ class DayTwentyOneTest {
 		assertThat(multiplyLoserScoreWithDiceRolls("""
 				Player 1 starting position: 4
 				Player 2 starting position: 8
-				""")).isEqualByComparingTo(739785L);
+				""")).isEqualByComparingTo(739785);
 	}
 
 	@Test
@@ -22,21 +22,21 @@ class DayTwentyOneTest {
 		assertThat(multiplyLoserScoreWithDiceRolls("""
 				Player 1 starting position: 1
 				Player 2 starting position: 10
-				""")).isEqualByComparingTo(428736L);
+				""")).isEqualByComparingTo(428736);
 	}
 
-	private static long multiplyLoserScoreWithDiceRolls(String input) {
+	private static int multiplyLoserScoreWithDiceRolls(String input) {
 		String[] lines = input.split("\n");
 		int p1Position = Integer.parseInt(lines[0].split(": ")[1]);
 		int p2Position = Integer.parseInt(lines[1].split(": ")[1]);
-		long p1Score = 0;
-		long p2Score = 0;
+		int p1Score = 0;
+		int p2Score = 0;
 
 		OfInt dice = IntStream.generate(() -> -1)
 				.flatMap($ -> IntStream.rangeClosed(1, 100))
 				.iterator();
 
-		long diceRolls = 0;
+		int diceRolls = 0;
 		final long scoreLimit = 1000;
 		while (p1Score < scoreLimit && p2Score < scoreLimit) {
 			int a = dice.nextInt();
