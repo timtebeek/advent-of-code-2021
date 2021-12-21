@@ -1,10 +1,15 @@
 package day21;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.PrimitiveIterator.OfInt;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayTwentyOneTest {
@@ -26,42 +31,84 @@ class DayTwentyOneTest {
 	}
 
 	private static int multiplyLoserScoreWithDiceRolls(String input) {
-		String[] lines = input.split("\n");
-		int p1Position = Integer.parseInt(lines[0].split(": ")[1]);
-		int p2Position = Integer.parseInt(lines[1].split(": ")[1]);
-		int p1Score = 0;
-		int p2Score = 0;
-
 		OfInt dice = IntStream.generate(() -> -1)
 				.flatMap($ -> IntStream.rangeClosed(1, 100))
 				.iterator();
 
+		GameState gameState = parse(input);
 		int diceRolls = 0;
-		final long scoreLimit = 1000;
-		while (p1Score < scoreLimit && p2Score < scoreLimit) {
+		while (!gameState.hasWon(1000)) {
 			int a = dice.nextInt();
 			int b = dice.nextInt();
 			int c = dice.nextInt();
-
-			if (diceRolls % 6 < 3) {
-				p1Position = nextPosition(p1Position, a + b + c);
-				p1Score += p1Position;
-				System.out.println("Player 1 rolls %d+%d+%d and moves to space %d for a total score of %d."
-						.formatted(a, b, c, p1Position, p1Score));
-			} else {
-				p2Position = nextPosition(p2Position, a + b + c);
-				p2Score += p2Position;
-				System.out.println("Player 2 rolls %d+%d+%d and moves to space %d for a total score of %d."
-						.formatted(a, b, c, p2Position, p2Score));
-			}
 			diceRolls += 3;
+			gameState = gameState.newState(a + b + c);
 		}
-		return diceRolls * Math.min(p1Score, p2Score);
+		return diceRolls * Math.min(gameState.p1Score(), gameState.p2Score());
+	}
+
+	@Test
+	@Disabled
+	void partTwoSample() throws Exception {
+		assertThat(howManyUniverseWins("""
+				Player 1 starting position: 4
+				Player 2 starting position: 8
+				""")).isEqualByComparingTo(444356092776315L);
+	}
+
+	private long howManyUniverseWins(String input) {
+		GameState initial = parse(input);
+		Map<GameState, Long> universes = new HashMap<>();
+
+		// TODO Auto-generated method stub
+		return -1;
+	}
+
+	private static GameState parse(String input) {
+		String[] lines = input.split("\n");
+		int p1Position = Integer.parseInt(lines[0].split(": ")[1]);
+		int p2Position = Integer.parseInt(lines[1].split(": ")[1]);
+		return new GameState(p1Position, 0, p2Position, 0, true);
+	}
+
+}
+
+record GameState(
+		int p1Position, int p1Score,
+		int p2Position, int p2Score,
+		boolean playerOneTurn) {
+
+	Stream<GameState> split() {
+		return IntStream.rangeClosed(1, 3)
+				.mapToObj(a -> IntStream.rangeClosed(1, 3)
+						.mapToObj(b -> IntStream.rangeClosed(1, 3)
+								.mapToObj(c -> newState(a + b + c))))
+				.flatMap(identity())
+				.flatMap(identity());
+	}
+
+	public GameState newState(int rolled) {
+		if (playerOneTurn) {
+			int nextPosition = nextPosition(p1Position, rolled);
+			return new GameState(
+					nextPosition, p1Score + nextPosition,
+					p2Position, p2Score,
+					false);
+		}
+		int nextPosition = nextPosition(p2Position, rolled);
+		return new GameState(
+				p1Position, p1Score,
+				nextPosition, p2Score + nextPosition,
+				true);
 	}
 
 	private static int nextPosition(int start, int rolled) {
-		int value = (start + rolled) % 10;
-		return value == 0 ? 10 : value;
+		int next = (start + rolled) % 10;
+		return next == 0 ? 10 : next;
+	}
+
+	public boolean hasWon(int scoreLimit) {
+		return scoreLimit <= p1Score || scoreLimit <= p2Score;
 	}
 
 }
