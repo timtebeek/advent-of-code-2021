@@ -38,14 +38,12 @@ class DayTwentyOneTest {
 
 		long diceRolls = 0;
 		final long scoreLimit = 1000;
-		boolean playerOneTurn = true;
 		while (p1Score < scoreLimit && p2Score < scoreLimit) {
 			int a = dice.nextInt();
 			int b = dice.nextInt();
 			int c = dice.nextInt();
-			diceRolls += 3;
 
-			if (playerOneTurn) {
+			if (diceRolls % 6 < 3) {
 				p1Position = nextPosition(p1Position, a + b + c);
 				p1Score += p1Position;
 				System.out.println("Player 1 rolls %d+%d+%d and moves to space %d for a total score of %d."
@@ -56,7 +54,7 @@ class DayTwentyOneTest {
 				System.out.println("Player 2 rolls %d+%d+%d and moves to space %d for a total score of %d."
 						.formatted(a, b, c, p2Position, p2Score));
 			}
-			playerOneTurn = !playerOneTurn;
+			diceRolls += 3;
 		}
 		return diceRolls * Math.min(p1Score, p2Score);
 	}
