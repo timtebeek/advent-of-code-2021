@@ -7,8 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.IntSummaryStatistics;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -24,29 +22,26 @@ class DayTwentyTest {
 	@Test
 	@Disabled
 	void partOneSample() throws Exception {
-		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
-		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+		assertThat(Stream.iterate(Parser.parse("sample"), Image::enhance)
 				.skip(2).findFirst().get().lit()).isEqualByComparingTo(35L);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
-		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+		assertThat(Stream.iterate(Parser.parse("input"), Image::enhance)
 				.skip(2).findFirst().get().lit()).isEqualByComparingTo(4968L);
 	}
 
 	@Test
 	void partOneOther() throws Exception {
-		String sample = Files.readString(Paths.get(getClass().getResource("other").toURI()));
-		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+		assertThat(Stream.iterate(Parser.parse("other"), Image::enhance)
 				.skip(2).findFirst().get().lit()).isEqualByComparingTo(5326L);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
-		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+		assertThat(Stream.iterate(Parser.parse("input"), Image::enhance)
+				.peek(System.out::println)
 				.skip(50).findFirst().get().lit()).isEqualByComparingTo(16793L);
 	}
 
@@ -54,8 +49,8 @@ class DayTwentyTest {
 
 class Parser {
 
-	public static Image parse(String input) {
-		String[] split = input.split("\n\n");
+	public static Image parse(String filename) throws Exception {
+		String[] split = Files.readString(Paths.get(Parser.class.getResource(filename).toURI())).split("\n\n");
 		return new Image(
 				split[0],
 				parsePixels(split[1]),
@@ -79,51 +74,46 @@ class Parser {
 record Image(String enhancement, Map<Pixel, Integer> pixels, int defaultValue) {
 
 	Image enhance() {
-		Map<Pixel, Integer> nextPixels = allPixels().collect(toMap(Function.identity(), pixel -> {
-			String bits = pixel.neighbors()
-					.map(p -> "" + pixels.getOrDefault(p, defaultValue))
-					.collect(joining());
-			int index = Integer.parseInt(bits, 2);
-			return enhancement.charAt(index) == '#' ? 1 : 0;
-		}));
-		return new Image(enhancement, nextPixels, 1 - defaultValue);
+		return new Image(
+				enhancement,
+				nextPixels().collect(toMap(Function.identity(), this::nextValue)),
+				1 - defaultValue);
 	}
 
-	private Stream<Pixel> allPixels() {
-		IntSummaryStatistics xstats = pixels.keySet().stream().mapToInt(Pixel::x).summaryStatistics();
-		IntSummaryStatistics ystats = pixels.keySet().stream().mapToInt(Pixel::y).summaryStatistics();
-		int padding = 1;
-		return rangeClosed(ystats.getMin() - padding, ystats.getMax() + padding)
-				.mapToObj(y -> rangeClosed(xstats.getMin() - padding, xstats.getMax() + padding)
+	private Stream<Pixel> nextPixels() {
+		var xstats = pixels.keySet().stream().mapToInt(Pixel::x).summaryStatistics();
+		var ystats = pixels.keySet().stream().mapToInt(Pixel::y).summaryStatistics();
+		return rangeClosed(ystats.getMin() - 1, ystats.getMax() + 1)
+				.mapToObj(y -> rangeClosed(xstats.getMin() - 1, xstats.getMax() + 1)
 						.mapToObj(x -> new Pixel(x, y)))
 				.flatMap(Function.identity());
 	}
 
+	private Integer nextValue(Pixel pixel) {
+		String bits = pixel.neighbors()
+				.map(p -> "" + pixels.getOrDefault(p, defaultValue))
+				.collect(joining());
+		return enhancement.charAt(Integer.parseInt(bits, 2)) == '#' ? 1 : 0;
+	}
+
 	@Override
 	public String toString() {
-		List<Pixel> list = pixels.keySet().stream().sorted().toList();
 		int y = Integer.MIN_VALUE;
 		StringBuilder sb = new StringBuilder();
-		for (Pixel point : list) {
+		for (Pixel point : pixels.keySet().stream().sorted().toList()) {
 			if (y < point.y()) {
 				y = point.y();
 				sb.append('\n');
 			}
-			sb.append(pixels.getOrDefault(point, defaultValue) == 1 ? '#' : '.');
+			sb.append(pixels.get(point) == 1 ? '#' : '.');
 		}
 		return sb.toString();
 	}
 
-	long lit() {
+	public long lit() {
 		return pixels.values().stream().filter(i -> i == 1).count();
 	}
 
-}
-
-record Boundary(Pixel topLeft, Pixel bottomRight) {
-	boolean within(Pixel pixel) {
-		return topLeft.compareTo(pixel) <= 0 && pixel.compareTo(bottomRight) <= 0;
-	}
 }
 
 record Pixel(int x, int y) implements Comparable<Pixel> {
