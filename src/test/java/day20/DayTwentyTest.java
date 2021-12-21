@@ -25,33 +25,29 @@ class DayTwentyTest {
 	@Disabled
 	void partOneSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
-		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.skip(2).findFirst().get();
-		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(35L);
+		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get().lit()).isEqualByComparingTo(35L);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.skip(2).findFirst().get();
-		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(4968L);
+		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get().lit()).isEqualByComparingTo(4968L);
 	}
 
 	@Test
 	void partOneOther() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("other").toURI()));
-		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.skip(2).findFirst().get();
-		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(5326L);
+		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get().lit()).isEqualByComparingTo(5326L);
 	}
 
 	@Test
 	void partTwoInput() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.skip(50).findFirst().get();
-		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(16793L);
+		assertThat(Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(50).findFirst().get().lit()).isEqualByComparingTo(16793L);
 	}
 
 }
@@ -116,6 +112,10 @@ record Image(String enhancement, Map<Pixel, Integer> pixels, int defaultValue) {
 			sb.append(pixels.getOrDefault(point, defaultValue) == 1 ? '#' : '.');
 		}
 		return sb.toString();
+	}
+
+	long lit() {
+		return pixels.values().stream().filter(i -> i == 1).count();
 	}
 
 }
