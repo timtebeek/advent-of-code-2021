@@ -25,31 +25,33 @@ class DayTwentyTest {
 	@Disabled
 	void partOneSample() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("sample").toURI()));
-		Image twiceEnhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.peek(System.out::println)
-				.skip(2)
-				.findFirst().get();
-		assertThat(twiceEnhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(35L);
+		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get();
+		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(35L);
 	}
 
 	@Test
 	void partOneInput() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
-		Image twiceEnhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.peek(System.out::println)
-				.skip(2)
-				.findFirst().get();
-		assertThat(twiceEnhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(4968L);
+		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get();
+		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(4968L);
 	}
 
 	@Test
 	void partOneOther() throws Exception {
 		String sample = Files.readString(Paths.get(getClass().getResource("other").toURI()));
-		Image twiceEnhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
-				.peek(System.out::println)
-				.skip(2)
-				.findFirst().get();
-		assertThat(twiceEnhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(5326L);
+		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(2).findFirst().get();
+		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(5326L);
+	}
+
+	@Test
+	void partTwoInput() throws Exception {
+		String sample = Files.readString(Paths.get(getClass().getResource("input").toURI()));
+		Image enhanced = Stream.iterate(Parser.parse(sample), Image::enhance)
+				.skip(50).findFirst().get();
+		assertThat(enhanced.pixels().values().stream().filter(i -> i == 1).count()).isEqualByComparingTo(16793L);
 	}
 
 }
