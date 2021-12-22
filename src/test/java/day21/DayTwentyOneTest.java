@@ -11,6 +11,8 @@ import java.util.stream.IntStream;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.partitioningBy;
+import static java.util.stream.Collectors.summingLong;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayTwentyOneTest {
@@ -85,11 +87,9 @@ class DayTwentyOneTest {
 			universeCopies = nextCopies;
 		}
 
-		return Math.max(
-				universeCopies.entrySet().stream().filter(e -> !e.getKey().playerOneTurn())
-						.mapToLong(Map.Entry::getValue).sum(),
-				universeCopies.entrySet().stream().filter(e -> e.getKey().playerOneTurn())
-						.mapToLong(Map.Entry::getValue).sum());
+		return universeCopies.entrySet().stream()
+				.collect(partitioningBy(e -> e.getKey().playerOneTurn(), summingLong(Entry::getValue)))
+				.values().stream().max(Long::compare).get();
 	}
 
 	private static GameState parse(String input) {
