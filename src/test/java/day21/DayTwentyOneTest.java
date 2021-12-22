@@ -67,16 +67,13 @@ class DayTwentyOneTest {
 	}
 
 	private static long howManyUniverseWins(String input) {
-		Map<GameState, Long> universeCopies = new HashMap<>();
-		universeCopies.put(parse(input), 1L);
-
-		int scoreLimit = 21;
-		while (!universeCopies.keySet().stream().allMatch(state -> state.hasWon(scoreLimit))) {
+		Map<GameState, Long> universeCopies = Map.of(parse(input), 1L);
+		while (!universeCopies.keySet().stream().allMatch(state -> state.hasWon(21))) {
 			Map<GameState, Long> nextCopies = new HashMap<>();
 			for (Entry<GameState, Long> previousEntry : universeCopies.entrySet()) {
 				GameState previousState = previousEntry.getKey();
 				Long previousCount = previousEntry.getValue();
-				if (previousState.hasWon(scoreLimit)) {
+				if (previousState.hasWon(21)) {
 					nextCopies.merge(previousState, previousCount, Long::sum);
 				} else {
 					for (Map.Entry<GameState, Long> nextEntry : previousState.split().entrySet()) {
