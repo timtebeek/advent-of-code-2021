@@ -1,15 +1,16 @@
 package day21;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.PrimitiveIterator.OfInt;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayTwentyOneTest {
@@ -48,7 +49,6 @@ class DayTwentyOneTest {
 	}
 
 	@Test
-	@Disabled
 	void partTwoSample() throws Exception {
 		assertThat(howManyUniverseWins("""
 				Player 1 starting position: 4
@@ -56,12 +56,44 @@ class DayTwentyOneTest {
 				""")).isEqualByComparingTo(444356092776315L);
 	}
 
-	private long howManyUniverseWins(String input) {
-		GameState initial = parse(input);
-		Map<GameState, Long> universes = new HashMap<>();
+	@Test
+	void partTwoInput() throws Exception {
+		assertThat(howManyUniverseWins("""
+				Player 1 starting position: 1
+				Player 2 starting position: 10
+				""")).isEqualByComparingTo(57328067654557L);
+	}
 
-		// TODO Auto-generated method stub
-		return -1;
+	private static long howManyUniverseWins(String input) {
+		Map<GameState, Long> universeCopies = new HashMap<>();
+		universeCopies.put(parse(input), 1L);
+
+		int scoreLimit = 21;
+		while (!universeCopies.keySet().stream().allMatch(state -> state.hasWon(scoreLimit))) {
+			Map<GameState, Long> nextCopies = new HashMap<>();
+			for (Entry<GameState, Long> previousEntry : universeCopies.entrySet()) {
+				GameState previousState = previousEntry.getKey();
+				Long previousCount = previousEntry.getValue();
+
+				if (previousState.hasWon(scoreLimit)) {
+					nextCopies.merge(previousState, previousCount, Long::sum); // TODO Put?
+				} else {
+					Map<GameState, Long> split = previousState.split();
+					for (Entry<GameState, Long> nextEntry : split.entrySet()) {
+						GameState nextState = nextEntry.getKey();
+						Long nextCount = nextEntry.getValue() * previousCount;
+						nextCopies.merge(nextState, nextCount, Long::sum);
+					}
+				}
+			}
+			universeCopies = nextCopies;
+		}
+
+		long player1Wins = universeCopies.entrySet().stream().filter(e -> !e.getKey().playerOneTurn())
+				.mapToLong(Map.Entry::getValue).sum();
+		long player2Wins = universeCopies.entrySet().stream().filter(e -> e.getKey().playerOneTurn())
+				.mapToLong(Map.Entry::getValue).sum();
+		return Math.max(player1Wins, player2Wins);
 	}
 
 	private static GameState parse(String input) {
@@ -78,13 +110,14 @@ record GameState(
 		int p2Position, int p2Score,
 		boolean playerOneTurn) {
 
-	Stream<GameState> split() {
+	Map<GameState, Long> split() {
 		return IntStream.rangeClosed(1, 3)
 				.mapToObj(a -> IntStream.rangeClosed(1, 3)
 						.mapToObj(b -> IntStream.rangeClosed(1, 3)
 								.mapToObj(c -> newState(a + b + c))))
 				.flatMap(identity())
-				.flatMap(identity());
+				.flatMap(identity())
+				.collect(groupingBy(identity(), counting()));
 	}
 
 	public GameState newState(int rolled) {
