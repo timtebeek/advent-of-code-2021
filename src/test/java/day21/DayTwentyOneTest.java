@@ -74,26 +74,22 @@ class DayTwentyOneTest {
 			for (Entry<GameState, Long> previousEntry : universeCopies.entrySet()) {
 				GameState previousState = previousEntry.getKey();
 				Long previousCount = previousEntry.getValue();
-
 				if (previousState.hasWon(scoreLimit)) {
-					nextCopies.merge(previousState, previousCount, Long::sum); // TODO Put?
+					nextCopies.merge(previousState, previousCount, Long::sum);
 				} else {
-					Map<GameState, Long> split = previousState.split();
-					for (Entry<GameState, Long> nextEntry : split.entrySet()) {
-						GameState nextState = nextEntry.getKey();
-						Long nextCount = nextEntry.getValue() * previousCount;
-						nextCopies.merge(nextState, nextCount, Long::sum);
+					for (Map.Entry<GameState, Long> nextEntry : previousState.split().entrySet()) {
+						nextCopies.merge(nextEntry.getKey(), nextEntry.getValue() * previousCount, Long::sum);
 					}
 				}
 			}
 			universeCopies = nextCopies;
 		}
 
-		long player1Wins = universeCopies.entrySet().stream().filter(e -> !e.getKey().playerOneTurn())
-				.mapToLong(Map.Entry::getValue).sum();
-		long player2Wins = universeCopies.entrySet().stream().filter(e -> e.getKey().playerOneTurn())
-				.mapToLong(Map.Entry::getValue).sum();
-		return Math.max(player1Wins, player2Wins);
+		return Math.max(
+				universeCopies.entrySet().stream().filter(e -> !e.getKey().playerOneTurn())
+						.mapToLong(Map.Entry::getValue).sum(),
+				universeCopies.entrySet().stream().filter(e -> e.getKey().playerOneTurn())
+						.mapToLong(Map.Entry::getValue).sum());
 	}
 
 	private static GameState parse(String input) {
